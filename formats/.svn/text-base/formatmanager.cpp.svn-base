@@ -1,0 +1,194 @@
+#include "formatmanager.h"
+
+static FMField sensor_field_list[] = 
+{
+	{"sampling_window", "double", sizeof(double), FMOffset(sensor_rec_ptr, sampling_window)},
+	{"sampling_rate", "integer", sizeof(int), FMOffset(sensor_rec_ptr, sampling_rate)},
+	{"timestamp", "double", sizeof(double), FMOffset(sensor_rec_ptr, timestamp)},
+	{"attr_name", "string", sizeof(char*), FMOffset(sensor_rec_ptr, attr_name)},
+	{"rec_val", "float", sizeof(float), FMOffset(sensor_rec_ptr, rec_val)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMStructDescRec sensor_format_list[] = 
+{
+    {"sensor", sensor_field_list, sizeof(sensor_rec), NULL},
+    {NULL, NULL}
+};
+
+static FMField recs_field_list[] = 
+{
+	{"attr_name", "string", sizeof(char*), FMOffset(recs_ptr, attr_name)},
+	{"num_recs", "integer", sizeof(int), FMOffset(recs_ptr, num_recs)},
+	{"rec_val", "float[num_recs]", sizeof(float), FMOffset(recs_ptr, rec_val)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMStructDescRec recs_format_list[] = 
+{
+    {"recs", recs_field_list, sizeof(recs), NULL},
+    {NULL, NULL}
+};
+
+static FMField recs_range_field_list[] = 
+{
+	{"attr_name", "string", sizeof(char*), FMOffset(recs_range_ptr, attr_name)},
+	{"key_srange", "float", sizeof(float), FMOffset(recs_range_ptr, key_srng)},
+	{"key_erange", "float", sizeof(float), FMOffset(recs_range_ptr, key_erng)},
+	{"num_recs", "integer", sizeof(int), FMOffset(recs_range_ptr, num_recs)},
+	{"rec_val", "float[num_recs]", sizeof(float), FMOffset(recs_range_ptr, rec_val)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMStructDescRec recs_range_format_list[] = 
+{
+    {"recs_range", recs_range_field_list, sizeof(recs_range), NULL},
+    {NULL, NULL}
+};
+
+static FMField recs_range_level_field_list[] = 
+{
+	{"attr_name", "string", sizeof(char*), FMOffset(recs_range_level_ptr, attr_name)},
+	{"key_srange", "float", sizeof(float), FMOffset(recs_range_level_ptr, key_srng)},
+	{"key_erange", "float", sizeof(float), FMOffset(recs_range_level_ptr, key_erng)},
+	{"range_level", "integer", sizeof(int), FMOffset(recs_range_level_ptr, range_level)},
+	{"num_recs", "integer", sizeof(int), FMOffset(recs_range_level_ptr, num_recs)},
+	{"rec_val", "float[num_recs]", sizeof(float), FMOffset(recs_range_level_ptr, rec_val)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMStructDescRec recs_range_level_format_list[] = 
+{
+    {"recs_range_level", recs_range_level_field_list, sizeof(recs_range_level), NULL},
+    {NULL, NULL}
+};
+
+static FMField recs_range_level_list_field_list[] = 
+{
+	{"num_range_recs", "integer", sizeof(int), FMOffset(recs_range_level_list_ptr, num_range_recs)},
+	{"recs_range_level", "recs_range_level[num_range_recs]", sizeof(struct recs_range_level), FMOffset(recs_range_level_list_ptr, recs_range)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMStructDescRec recs_range_level_list_format_list[] = 
+{
+    {"recs_range_level_list", recs_range_level_list_field_list, sizeof(recs_range_level_list), NULL},
+    {"recs_range_level", recs_range_level_field_list, sizeof(recs_range_level), NULL},
+    {NULL, NULL}
+};
+
+static FMField rec_stats_field_list[] = 
+{
+	{"attr_name", "string", sizeof(char*), FMOffset(rec_stats_ptr, attr_name)},
+	{"key_srange", "float", sizeof(float), FMOffset(rec_stats_ptr, key_srng)},
+	{"key_erange", "float", sizeof(float), FMOffset(rec_stats_ptr, key_erng)},
+	{"rec_int_cnt", "integer", sizeof(int), FMOffset(rec_stats_ptr, rec_int_cnt)},
+	{"rec_float_cnt", "float", sizeof(float), FMOffset(rec_stats_ptr, rec_float_cnt)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMStructDescRec rec_stats_format_list[] = 
+{
+    {"rec_stats", rec_stats_field_list, sizeof(rec_stats), NULL},
+    {NULL, NULL}
+};
+
+static FMField recs_stats_range_list_field_list[] = 
+{
+	{"num_stats_recs", "integer", sizeof(int), FMOffset(recs_stats_range_list_ptr, num_stats_recs)},
+	{"recs_stats", "rec_stats[num_stats_recs]", sizeof(struct rec_stats), FMOffset(recs_stats_range_list_ptr, recs_stats)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMStructDescRec recs_stats_range_list_format_list[] = 
+{
+    {"recs_stats_range_list", recs_stats_range_list_field_list, sizeof(recs_stats_range_list), NULL},
+    {"rec_stats", rec_stats_field_list, sizeof(rec_stats), NULL},
+    {NULL, NULL}
+};
+
+static FMField rec_stats_threshold_field_list[] = 
+{
+	{"attr_name", "string", sizeof(char*), FMOffset(rec_stats_threshold_ptr, attr_name)},
+	{"key_srange", "float", sizeof(float), FMOffset(rec_stats_threshold_ptr, key_srng)},
+	{"key_erange", "float", sizeof(float), FMOffset(rec_stats_threshold_ptr, key_erng)},
+	{"threshold_val", "integer", sizeof(int), FMOffset(rec_stats_threshold_ptr, threshold_val)},
+	{"rec_int_cnt", "integer", sizeof(int), FMOffset(rec_stats_threshold_ptr, rec_int_cnt)},
+	{"rec_float_cnt", "float", sizeof(float), FMOffset(rec_stats_threshold_ptr, rec_float_cnt)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMField recs_stats_threshold_range_list_field_list[] = 
+{
+	{"num_range_recs", "integer", sizeof(int), FMOffset(recs_stats_threshold_range_list_ptr, num_stats_recs)},
+	{"rec_stats_threshold", "rec_stats_threshold[num_range_recs]", sizeof(struct rec_stats_threshold), FMOffset(recs_stats_threshold_range_list_ptr, 
+	recs_stats_threshold)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMStructDescRec recs_stats_threshold_range_list_format_list[] = 
+{
+    {"recs_stats_threshold_range_list", recs_stats_threshold_range_list_field_list, sizeof(recs_stats_threshold_range_list), NULL},
+    {"rec_stats_threshold", rec_stats_threshold_field_list, sizeof(rec_stats_threshold), NULL},
+    {NULL, NULL}
+};
+
+static FMField recs_entropy_stats_field_list[] = 
+{
+	{"attr_name", "string", sizeof(char*), FMOffset(recs_entropy_stats_ptr, attr_name)},
+	{"total_recs", "integer", sizeof(int), FMOffset(recs_entropy_stats_ptr, total_recs)},
+	{"recs_entropy", "float", sizeof(float), FMOffset(recs_entropy_stats_ptr, recs_entropy)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMField recs_entropy_stats_threshold_field_list[] = 
+{
+	{"attr_name", "string", sizeof(char*), FMOffset(recs_entropy_stats_threshold_ptr, attr_name)},
+	{"total_recs", "integer", sizeof(int), FMOffset(recs_entropy_stats_threshold_ptr, total_recs)},
+	{"recs_entropy", "float", sizeof(float), FMOffset(recs_entropy_stats_threshold_ptr, recs_entropy)},
+	{"recs_entropy_threshold", "float", sizeof(float), FMOffset(recs_entropy_stats_threshold_ptr, recs_entropy_threshold)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMStructDescRec recs_entropy_stats_format_list[] = 
+{
+    {"recs_entropy_stats", recs_entropy_stats_field_list, sizeof(recs_entropy_stats), NULL},
+    {NULL, NULL}
+};
+
+static FMStructDescRec recs_entropy_stats_threshold_format_list[] = 
+{
+    {"recs_entropy_threshold_stats", recs_entropy_stats_threshold_field_list, sizeof(recs_entropy_stats_threshold), NULL},
+    {NULL, NULL}
+};
+
+FMStructDescRec *get_format_list(char *format) {
+	if(strcmp("sensor", format) == 0) {
+		return sensor_format_list;
+	} else if(strcmp("recs", format) == 0) {
+		return recs_format_list;
+	} else if(strcmp("recs_range", format) == 0) {
+		return recs_range_format_list;
+	} else if(strcmp("recs_range_level", format) == 0) {
+		return recs_range_level_format_list;
+	} else if(strcmp("recs_range_level_list", format) == 0) {
+		return recs_range_level_list_format_list;
+	} else if(strcmp("recs_stats", format) == 0) {
+		return rec_stats_format_list;
+	} else if(strcmp("recs_stats_range_list", format) == 0) {
+		return recs_stats_range_list_format_list;
+	} else if(strcmp("recs_stats_threshold_range_list", format) == 0) {
+		return recs_stats_threshold_range_list_format_list;
+	} else if(strcmp("recs_entropy_stats", format) == 0) {
+		return recs_entropy_stats_format_list;
+	} else if(strcmp("recs_entropy_stats_threshold", format) == 0) {
+		return recs_entropy_stats_threshold_format_list;
+	}
+}
+
+/*int main(int argc, char *argv[]){
+	printf("Format name for stats_rec_format_list ==> %s \n", get_format_list("stats_rec")->format_name);
+	printf("Format name for stats_recs_format_list ==> %s \n", get_format_list("stats_recs_list")->format_name);
+	printf("Format name for range_recs_format_list ==> %s \n", get_format_list("range_recs_list")->format_name);
+	return 0;
+}*/

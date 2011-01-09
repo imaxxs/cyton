@@ -1,0 +1,80 @@
+#ifndef AXON_CONTEXT_H
+#define AXON_CONTEXT_H
+
+#include "../util/common.h"
+
+typedef struct node_boot {
+	int is_control;
+	char *bootserver_contact_list;
+	char *node_contact_list;
+} node_boot, *node_boot_ptr;
+
+typedef struct nodes_state_map {
+	char* node_contact_list;
+	char* node_coord_contact_list;
+	char* node_aggr_contact_list;
+	char* node_actu_contact_list;
+	char* node_parent_contact_list;
+	char** node_child_contact_list;
+} nodes_state_map, *nodes_state_map_ptr;
+
+typedef struct coord_overlay_map {
+	char* node_contact_list;
+	char* node_coord_contact_list;
+	char* node_parent_contact_list;
+	char* node_aggr_contact_list;
+	char* node_actu_contact_list;
+	char** node_child_contact_list;
+} coord_overlay_map, *coord_overlay_map_ptr;
+	
+typedef struct monitors_stones_map {
+	char *monitors_key;
+	char *monitors_type;
+	int monitors_stream_id;
+	int monitors_split_action;
+	char *monitors_data_format;
+} monitors_stones_map, *monitors_stones_map_ptr;
+
+typedef struct monitors_nodes_map {
+	char *monitors_node_contact_list;
+	struct monitors_stones_map *msmap;
+} monitors_nodes_map, *monitors_nodes_map_ptr;
+
+typedef struct query_deployers {
+	char *node_contact_list;
+	int is_query_deployed;
+	int is_query_running;
+	struct stone_context_list *stone_endpoints;
+	struct func_context_list *func_endpoints;
+} query_deployers, query_deployers_ptr;
+
+typedef struct query_run_state {
+	int query_id;	
+	int query_type;	
+	int is_query_deployed;	
+	int is_query_on;	
+	int graph_id; //Field not required to be removed
+	struct func_rec *func_recs;
+	struct query_deployers *query_aggregators;
+	struct query_deployers *query_nodes;
+} query_run_state, *query_run_state_ptr;
+
+typedef struct queries_nodes_map {
+	char *query_src_contact_list;
+	char *query_coord_contact_list;
+	struct query_run_state *qruns;
+} queries_nodes_map, *queries_nodes_map_ptr;
+
+typedef struct query_node_state {
+	int qid;
+	char *node_contact_list;
+	int func_stone_recs;
+	struct func_stone *funcs_stones;
+} query_node_state, *query_node_state_ptr;
+
+typedef struct query_node_states {
+	int qnode_state_recs;
+	struct query_node_state *qnstates;
+} query_node_states, *query_node_states_ptr;
+
+#endif

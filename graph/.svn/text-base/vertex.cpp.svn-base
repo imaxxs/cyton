@@ -1,0 +1,192 @@
+#include "vertex.h"
+
+int realize_vertex(CManager cm, int qid, struct func_rec frec, struct stone_context *stone_ctx, 
+struct func_context *func_ctx, struct split_context *split_ctx) {
+	printf("Started creating vertex for query_id : %d and for function : %s ....\n", qid, frec.func_name);
+	int stone_id = -1;
+	if(frec.func_type == 0) { // Source
+		EVstone vstep_stone = EValloc_stone(cm);
+		FMStructDescRec *in_format_list = get_format_list(frec.in_format);
+		char *vstep_action_spec = create_filter_action_spec(in_format_list, frec.func_name);
+		EVaction vstep_action = EVassoc_immediate_action (cm, vstep_stone, vstep_action_spec, NULL);
+		EVstone *targets = NULL;
+		EVstone vsplit_stone = EValloc_stone (cm);
+		EVaction vsplit_action = EVassoc_split_action(cm, vsplit_stone, targets);
+		printf("Created SOURCE with stone_id : %d and action_id : %d ....\n", vsplit_stone, vsplit_action);
+		EVaction_set_output(cm, vstep_stone, vstep_action, 0, vsplit_stone);
+		if(frec.flevel_start_point == 1 || frec.flevel_end_point == 1) { // Source
+			for(int k=0; k < 2; k++) {
+				if(stone_ctx[k].stone_id == -1) {
+					stone_ctx[k].stone_id = vstep_stone;
+					stone_ctx[k].stone_action = vstep_action;
+					stone_ctx[k].split_stone = vsplit_stone;
+					stone_ctx[k].split_action = vsplit_action;
+					break;
+				}
+			}
+			for(int k=0; k < 2; k++) {
+				if(func_ctx[k].func_name == NULL) {
+					func_ctx[k].func_name = strdup(frec.func_name); 
+					func_ctx[k].in_format = strdup(frec.in_format); 
+					func_ctx[k].out_format = strdup(frec.out_format); 
+					func_ctx[k].func_order = frec.func_order;
+					func_ctx[k].func_level = frec.func_level;
+					break;
+				}
+			}
+		}
+		stone_id = vstep_stone;
+	} else if(frec.func_type == 1) { // Sink
+		EVstone vstep_stone; EVaction vstep_action; EVstone vsplit_stone; EVaction vsplit_action;
+		vstep_stone = EValloc_stone(cm); // Sink Handler NULL for now needs to be fixed later
+		FMStructDescRec *in_format_list = get_format_list(frec.in_format);
+	    vstep_action = EVassoc_terminal_action(cm, vstep_stone, in_format_list, NULL, NULL);	
+		printf("Created SINK with stone_id : %d and action_id : %d ....\n", vstep_stone, vstep_action);
+		if(frec.flevel_start_point == 1 || frec.flevel_end_point == 1) { // Sink
+			for(int k=0; k < 2; k++) {
+				if(stone_ctx[k].stone_id == -1) {
+					stone_ctx[k].stone_id = vstep_stone;
+					stone_ctx[k].stone_action = vstep_action;
+					stone_ctx[k].split_stone = vsplit_stone;
+					stone_ctx[k].split_action = vsplit_action;
+					break;
+				}
+			}
+			for(int k=0; k < 2; k++) {
+				if(func_ctx[k].func_name == NULL) {
+					func_ctx[k].func_name = strdup(frec.func_name); 
+					func_ctx[k].in_format = strdup(frec.in_format); 
+					func_ctx[k].out_format = strdup(frec.out_format); 
+					func_ctx[k].func_order = frec.func_order;
+					func_ctx[k].func_level = frec.func_level;
+					break;
+				}
+			}
+		}
+		stone_id = vstep_stone;
+	} else if(frec.func_type == 3) { //Transform
+		EVstone vstep_stone; EVaction vstep_action;
+		vstep_stone = EValloc_stone(cm);
+		FMStructDescRec *in_format_list = get_format_list(frec.in_format);
+		char *vstep_action_spec = create_transform_action_spec(in_format_list, get_format_list(frec.out_format), frec.func_name);
+		vstep_action = EVassoc_immediate_action (cm, vstep_stone, vstep_action_spec, NULL);
+		EVstone *targets = NULL;
+		EVstone vsplit_stone = EValloc_stone (cm);
+		EVaction vsplit_action = EVassoc_split_action(cm, vsplit_stone, targets);
+		EVaction_set_output(cm, vstep_stone, vstep_action, 0, vsplit_stone);
+		printf("Created TRANSFORM with stone_id : %d and action_id : %d ....\n", vstep_stone, vstep_action);
+		split_ctx->split_stone = -1;
+		split_ctx->split_action = -1;
+		split_ctx->split_stone = vsplit_stone;
+		split_ctx->split_action = vsplit_action;
+		if(frec.flevel_start_point == 1 || frec.flevel_end_point == 1) { // Transform 
+			for(int k=0; k < 2; k++) {
+				if(stone_ctx[k].stone_id == -1) {
+					stone_ctx[k].stone_id = vstep_stone;
+					stone_ctx[k].stone_action = vstep_action;
+					stone_ctx[k].split_stone = vsplit_stone;
+					stone_ctx[k].split_action = vsplit_action;
+					break;
+				}
+			}
+			for(int k=0; k < 2; k++) {
+				if(func_ctx[k].func_name == NULL) {
+					func_ctx[k].func_name = strdup(frec.func_name); 
+					func_ctx[k].in_format = strdup(frec.in_format); 
+					func_ctx[k].out_format = strdup(frec.out_format); 
+					func_ctx[k].func_order = frec.func_order;
+					func_ctx[k].func_level = frec.func_level;
+					break;
+				}
+			}
+		}
+		stone_id = vstep_stone;
+	} else if(frec.func_type == 2) { //Filter
+		EVstone vstep_stone; EVaction vstep_action;
+		vstep_stone = EValloc_stone(cm);
+		FMStructDescRec *in_format_list = get_format_list(frec.in_format);
+		char *vstep_action_spec = create_filter_action_spec(in_format_list, frec.func_name);
+		vstep_action = EVassoc_immediate_action (cm, vstep_stone, vstep_action_spec, NULL);
+		EVstone *targets = NULL;
+		EVstone vsplit_stone = EValloc_stone (cm);
+		EVaction vsplit_action = EVassoc_split_action(cm, vsplit_stone, targets);
+		EVaction_set_output(cm, vstep_stone, vstep_action, 0, vsplit_stone);
+		printf("Created FILTER with stone_id : %d and action_id : %d ....\n", vsplit_stone, vsplit_action);
+		split_ctx->split_stone = -1;
+		split_ctx->split_action = -1;
+		split_ctx->split_stone = vsplit_stone;
+		split_ctx->split_action = vsplit_action;
+		if(frec.flevel_start_point == 1 || frec.flevel_end_point == 1) { // Filter 
+			for(int k=0; k < 2; k++) {
+				if(stone_ctx[k].stone_id == -1) {
+					stone_ctx[k].stone_id = vstep_stone;
+					stone_ctx[k].stone_action = vstep_action;
+					stone_ctx[k].split_stone = vsplit_stone;
+					stone_ctx[k].split_action = vsplit_action;
+					break;
+				}
+			}
+			for(int k=0; k < 2; k++) {
+				if(func_ctx[k].func_name == NULL) {
+					func_ctx[k].func_name = strdup(frec.func_name); 
+					func_ctx[k].in_format = strdup(frec.in_format); 
+					func_ctx[k].out_format = strdup(frec.out_format); 
+					func_ctx[k].func_order = frec.func_order;
+					func_ctx[k].func_level = frec.func_level;
+					break;
+				}
+			}
+		}
+		stone_id = vstep_stone;
+	} else if(frec.func_type == 4) { //Router
+		EVstone vstep_stone; EVaction vstep_action;
+		vstep_stone = EValloc_stone(cm);
+		FMStructDescRec *in_format_list = get_format_list(frec.in_format);
+		char *vstep_action_spec = create_router_action_spec(in_format_list, frec.func_name);
+		vstep_action = EVassoc_immediate_action (cm, vstep_stone, vstep_action_spec, NULL);
+		EVstone *targets = NULL;
+		EVstone vsplit_stone = EValloc_stone (cm);
+		EVaction vsplit_action = EVassoc_split_action(cm, vsplit_stone, targets);
+		EVaction_set_output(cm, vstep_stone, vstep_action, 0, vsplit_stone);
+		printf("Created ROUTER with stone_id : %d and action_id : %d ....\n", vstep_stone, vstep_action);
+		split_ctx->split_stone = -1;
+		split_ctx->split_action = -1;
+		split_ctx->split_stone = vsplit_stone;
+		split_ctx->split_action = vsplit_action;
+		if(frec.flevel_start_point == 1 || frec.flevel_end_point == 1) { // Router 
+			for(int k=0; k < 2; k++) {
+				if(stone_ctx[k].stone_id == -1) {
+					stone_ctx[k].stone_id = vstep_stone;
+					stone_ctx[k].stone_action = vstep_action;
+					stone_ctx[k].split_stone = vsplit_stone;
+					stone_ctx[k].split_action = vsplit_action;
+					break;
+				}
+			}
+			for(int k=0; k < 2; k++) {
+				if(func_ctx[k].func_name == NULL) {
+					func_ctx[k].func_name = strdup(frec.func_name); 
+					func_ctx[k].in_format = strdup(frec.in_format); 
+					func_ctx[k].out_format = strdup(frec.out_format); 
+					func_ctx[k].func_order = frec.func_order;
+					func_ctx[k].func_level = frec.func_level;
+					break;
+				}
+			}
+		}
+		stone_id = vstep_stone;
+	}
+	return stone_id;
+}
+
+void reactivate_vertex() {
+	
+}
+
+void passivate_vertex() {
+	
+}
+
+void delete_vertex() {
+	
+}

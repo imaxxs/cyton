@@ -1,0 +1,648 @@
+#include "axoncontext.h"
+
+struct axon *create_axon_context() {
+	struct axon *axctx = (struct axon *)calloc(1, sizeof(struct axon));
+
+	axctx->qnmap = (struct queries_nodes_map *)calloc(5, sizeof(struct queries_nodes_map));
+	for(int m = 0; m < 5; m++) {
+		axctx->qnmap[m].query_src_contact_list = NULL;
+		axctx->qnmap[m].query_coord_contact_list = NULL;
+		axctx->qnmap[m].qruns = (struct query_run_state *)calloc(5, sizeof(struct query_run_state));
+		for(int l = 0; l < 5; l++) {
+			axctx->qnmap[m].qruns[l].query_id = -1;
+			axctx->qnmap[m].qruns[l].query_type = 0;
+			axctx->qnmap[m].qruns[l].is_query_deployed = 0;
+			axctx->qnmap[m].qruns[l].is_query_on = 0;
+			axctx->qnmap[m].qruns[l].graph_id = 0; // Field not in use to be removed
+			axctx->qnmap[m].qruns[l].func_recs = (struct func_rec *) calloc(NUM_FUNCS, sizeof(func_rec));
+			for (int k = 0; k < NUM_FUNCS; k++) {
+				axctx->qnmap[m].qruns[l].func_recs[k].func_name = NULL;
+				axctx->qnmap[m].qruns[l].func_recs[k].in_format = NULL;
+				axctx->qnmap[m].qruns[l].func_recs[k].out_format = NULL;
+				axctx->qnmap[m].qruns[l].func_recs[k].func_type = -1;
+				axctx->qnmap[m].qruns[l].func_recs[k].func_order = -1;
+				axctx->qnmap[m].qruns[l].func_recs[k].func_level = -1;
+			}
+			axctx->qnmap[m].qruns[l].query_aggregators = (struct query_deployers *)calloc(1, sizeof(struct query_deployers));
+			for(int n = 0; n < 1; n++) {
+				axctx->qnmap[m].qruns[l].query_aggregators[n].node_contact_list = NULL;
+				axctx->qnmap[m].qruns[l].query_aggregators[n].is_query_deployed = -1;
+				axctx->qnmap[m].qruns[l].query_aggregators[n].is_query_running = -1;
+				axctx->qnmap[m].qruns[l].query_aggregators[n].stone_endpoints = (struct stone_context *)calloc(2, sizeof(struct stone_context));
+				axctx->qnmap[m].qruns[l].query_aggregators[n].func_endpoints = (struct func_context *)calloc(2, sizeof(struct func_context));
+				for(int p = 0; p < 2; p++) {
+					axctx->qnmap[m].qruns[l].query_aggregators[n].stone_endpoints[p].stone_id = -1;
+					axctx->qnmap[m].qruns[l].query_aggregators[n].stone_endpoints[p].stone_action = -1;
+					axctx->qnmap[m].qruns[l].query_aggregators[n].stone_endpoints[p].split_stone = -1;
+					axctx->qnmap[m].qruns[l].query_aggregators[n].stone_endpoints[p].split_action = -1;
+					axctx->qnmap[m].qruns[l].query_aggregators[n].func_endpoints[p].func_name = NULL;
+					axctx->qnmap[m].qruns[l].query_aggregators[n].func_endpoints[p].in_format = NULL;
+					axctx->qnmap[m].qruns[l].query_aggregators[n].func_endpoints[p].out_format = NULL;
+					axctx->qnmap[m].qruns[l].query_aggregators[n].func_endpoints[p].func_order = -1;
+					axctx->qnmap[m].qruns[l].query_aggregators[n].func_endpoints[p].func_level = -1;
+				}
+			}
+			axctx->qnmap[m].qruns[l].query_nodes = (struct query_deployers *)calloc(5, sizeof(struct query_deployers));
+			for(int p = 0; p < 5; p++) {
+				axctx->qnmap[m].qruns[l].query_nodes[p].node_contact_list = NULL;
+				axctx->qnmap[m].qruns[l].query_nodes[p].is_query_deployed = -1;
+				axctx->qnmap[m].qruns[l].query_nodes[p].is_query_running = -1;
+				axctx->qnmap[m].qruns[l].query_nodes[p].stone_endpoints = (struct stone_context *)calloc(2, sizeof(struct stone_context));
+				axctx->qnmap[m].qruns[l].query_nodes[p].func_endpoints = (struct func_context *)calloc(2, sizeof(struct func_context));
+				for(int q = 0; q < 2; q++) {
+					axctx->qnmap[m].qruns[l].query_nodes[p].stone_endpoints[q].stone_id = -1;
+					axctx->qnmap[m].qruns[l].query_nodes[p].stone_endpoints[q].stone_action = -1;
+					axctx->qnmap[m].qruns[l].query_nodes[p].stone_endpoints[q].split_stone = -1;
+					axctx->qnmap[m].qruns[l].query_nodes[p].stone_endpoints[q].split_action = -1;
+					axctx->qnmap[m].qruns[l].query_nodes[p].func_endpoints[q].func_name = NULL;
+					axctx->qnmap[m].qruns[l].query_nodes[p].func_endpoints[q].in_format = NULL;
+					axctx->qnmap[m].qruns[l].query_nodes[p].func_endpoints[q].out_format = NULL;
+					axctx->qnmap[m].qruns[l].query_nodes[p].func_endpoints[q].func_order = -1;
+					axctx->qnmap[m].qruns[l].query_nodes[p].func_endpoints[q].func_level = -1;
+				}
+			}
+		}
+	}
+
+	axctx->mnmap = (struct monitors_nodes_map *)calloc(5, sizeof(struct monitors_nodes_map));
+	for(int m = 0; m < 5; m++) {
+		axctx->mnmap[m].monitors_node_contact_list = NULL;
+		axctx->mnmap[m].msmap = (struct monitors_stones_map *)calloc(2, sizeof(struct monitors_stones_map));
+		for (int n = 0; n < 2; n++) {
+			axctx->mnmap[m].msmap[n].monitors_key = NULL;
+			axctx->mnmap[m].msmap[n].monitors_type = NULL;
+			axctx->mnmap[m].msmap[n].monitors_stream_id = 0;
+			axctx->mnmap[m].msmap[n].monitors_split_action = 0;
+			axctx->mnmap[m].msmap[n].monitors_data_format = NULL;
+		}
+	}
+
+	axctx->comap = (struct coord_overlay_map *)calloc(5, sizeof(struct coord_overlay_map));
+	for(int m = 0; m < 5; m++) {
+		axctx->comap[m].node_contact_list = NULL;
+		axctx->comap[m].node_coord_contact_list = NULL;
+		axctx->comap[m].node_aggr_contact_list = NULL;
+		axctx->comap[m].node_actu_contact_list = NULL;
+		axctx->comap[m].node_parent_contact_list = NULL;
+		axctx->comap[m].node_child_contact_list = (char **)calloc(5, sizeof(char**));
+		for (int n = 0; n < 5; n++) {
+			axctx->comap[m].node_child_contact_list[n] = NULL;
+		}
+	}
+
+	return axctx;
+}
+
+void connect_monitors_nodes_funcs_endpoints_for_query(CManager cm, struct axon *axctx, char *coord_contact_list, int qid, char *mon_attr) {
+	printf("Connecting monitor endpoints for query : %d  for monitoring attribute : %s \n", qid, mon_attr);
+	for(int i = 0; i < 5; i++) {
+		if(strcmp(axctx->qnmap[i].query_coord_contact_list, coord_contact_list) == 0) {
+			for(int m = 0; m < 5; m++) {
+				if(axctx->qnmap[i].qruns[m].query_id == qid) {
+					for(int n = 0; n < 5; n++) {
+						if(axctx->qnmap[i].qruns[m].query_nodes[n].node_contact_list != NULL && 
+							strcmp(axctx->qnmap[i].qruns[m].query_nodes[n].node_contact_list, coord_contact_list) != 0) {
+							attr_list dnode_attr_list = attr_list_from_string(axctx->qnmap[i].qruns[m].query_nodes[n].node_contact_list);
+							printf("Creating graph endpoints at node : %s  \n", axctx->qnmap[i].qruns[m].query_nodes[n].node_contact_list);
+							CMConnection nconn = CMget_conn(cm, dnode_attr_list);
+							if (nconn == NULL) {
+								printf("No connection, attr list was :");
+								dump_attr_list(dnode_attr_list);
+								printf("\n");
+								exit(1);
+							}
+							for(int o = 0 ; o < 5; o++) {
+								if(strcmp(axctx->mnmap[o].monitors_node_contact_list, axctx->qnmap[i].qruns[m].query_nodes[n].node_contact_list) == 0) {
+									for(int p = 0; p < 2; p++) {
+										if(axctx->mnmap[o].msmap[p].monitors_key != NULL &&  
+											strcmp(axctx->mnmap[o].msmap[p].monitors_key, mon_attr) == 0) {
+											printf("Adding split target from split stone id : %d with split action id : %d to end stone id : %d \n", 
+											axctx->mnmap[o].msmap[p].monitors_stream_id,
+											axctx->mnmap[o].msmap[p].monitors_split_action,
+											axctx->qnmap[i].qruns[m].query_nodes[n].stone_endpoints[1].stone_id);
+
+											REVaction_add_split_target(nconn, axctx->mnmap[o].msmap[p].monitors_stream_id,
+																		axctx->mnmap[o].msmap[p].monitors_split_action,
+																		axctx->qnmap[i].qruns[m].query_nodes[n].stone_endpoints[1].stone_id);
+											printf("Added split target from stone : %d at node : %s to its output stone \n", 
+											axctx->mnmap[o].msmap[p].monitors_stream_id,
+											axctx->qnmap[i].qruns[m].query_nodes[n].node_contact_list);
+										}
+									}
+								}
+							}
+					    }
+					}
+				}
+			}
+		}
+	}
+}
+
+void connect_nodes_aggregator_funcs_endpoints_for_query(CManager cm, struct axon *axctx, char *coord_contact_list, int qid) {
+	printf("Connecting aggregator endpoints for query : %d  \n", qid);
+	for(int i = 0; i < 5; i++) {
+		if(strcmp(axctx->qnmap[i].query_coord_contact_list, coord_contact_list) == 0) {
+			for(int m = 0; m < 5; m++) {
+				if(axctx->qnmap[i].qruns[m].query_id == qid) {
+					for(int n = 0; n < 5; n++) {
+						if(axctx->qnmap[i].qruns[m].query_nodes[n].node_contact_list != NULL && 
+							strcmp(axctx->qnmap[i].qruns[m].query_nodes[n].node_contact_list, coord_contact_list) != 0) {
+							printf("Creating aggregator endpoints at node : %s  \n", axctx->qnmap[i].qruns[m].query_nodes[n].node_contact_list);
+							attr_list dnode_attr_list = attr_list_from_string(axctx->qnmap[i].qruns[m].query_nodes[n].node_contact_list);
+							CMConnection nconn = CMget_conn(cm, dnode_attr_list);
+							if (nconn == NULL) {
+								printf("No connection, attr list was :");
+								dump_attr_list(dnode_attr_list);
+								printf("\n");
+								exit(1);
+							}
+
+							EVstone node_output_stone = REVcreate_bridge_action(nconn,
+														attr_list_from_string(axctx->qnmap[i].qruns[m].query_aggregators[0].node_contact_list), 
+														axctx->qnmap[i].qruns[m].query_aggregators[0].stone_endpoints[1].stone_id);
+							printf("Created output stone : %d at node : %s connected to aggregator \n", node_output_stone,
+							axctx->qnmap[i].qruns[m].query_nodes[n].node_contact_list);
+
+							printf("Adding split target from split stone id : %d with split action id : %d to end stone id : %d \n", 
+							axctx->qnmap[i].qruns[m].query_nodes[n].stone_endpoints[0].split_stone,
+							axctx->qnmap[i].qruns[m].query_nodes[n].stone_endpoints[0].split_action,
+							node_output_stone);
+
+							REVaction_add_split_target(nconn, axctx->qnmap[i].qruns[m].query_nodes[n].stone_endpoints[0].split_stone,
+														axctx->qnmap[i].qruns[m].query_nodes[n].stone_endpoints[0].split_action,
+														node_output_stone);
+							printf("Added split target from stone : %d at node : %s to its output stone \n", 
+							axctx->qnmap[i].qruns[m].query_nodes[n].stone_endpoints[0].split_stone,
+							axctx->qnmap[i].qruns[m].query_nodes[n].node_contact_list);
+					    }
+					}
+				}
+			}
+		}
+	}
+}
+
+void register_nodes_endpoints_for_query(CManager cm, struct axon *axctx, char *node_contact_list, char *coord_contact_list, int qid, int num_recs, 
+struct stone_context *stone_ctx, struct func_context *func_ctx) {
+	for(int i = 0; i < 5; i++) {
+		if(strcmp(axctx->qnmap[i].query_coord_contact_list, coord_contact_list) == 0) {
+			for(int m = 0; m < 5; m++) {
+				if(axctx->qnmap[i].qruns[m].query_id == qid) {
+					for(int n = 0; n < 5; n++) {
+						if(strcmp(axctx->qnmap[i].qruns[m].query_nodes[n].node_contact_list, node_contact_list) == 0) {
+							printf("Registering graph endpoints at node : %s \n", axctx->qnmap[i].qruns[m].query_nodes[n].node_contact_list); 
+							for(int k = 0; k < 2; k++) {
+								//printf("Graph stone endpoint index : %d stone id : %d .. \n", k, stone_ctx[k].stone_id); 
+								axctx->qnmap[i].qruns[m].query_nodes[n].stone_endpoints[k].stone_id = stone_ctx[k].stone_id;
+								//printf("Graph stone endpoint index : %d stone action id : %d .. \n", k, stone_ctx[k].stone_action); 
+								axctx->qnmap[i].qruns[m].query_nodes[n].stone_endpoints[k].stone_action = stone_ctx[k].stone_action;
+								//printf("Graph stone endpoint index : %d split stone id : %d .. \n", k, stone_ctx[k].split_stone); 
+								axctx->qnmap[i].qruns[m].query_nodes[n].stone_endpoints[k].split_stone = stone_ctx[k].split_stone;
+								//printf("Graph stone endpoint index : %d split action id : %d .. \n", k, stone_ctx[k].split_action); 
+								axctx->qnmap[i].qruns[m].query_nodes[n].stone_endpoints[k].split_action = stone_ctx[n].split_action;
+								axctx->qnmap[i].qruns[m].query_nodes[n].func_endpoints[k].func_name = func_ctx[k].func_name;
+								axctx->qnmap[i].qruns[m].query_nodes[n].func_endpoints[k].in_format = func_ctx[k].in_format;
+								axctx->qnmap[i].qruns[m].query_nodes[n].func_endpoints[k].out_format = func_ctx[k].out_format;
+								axctx->qnmap[i].qruns[m].query_nodes[n].func_endpoints[k].func_order = func_ctx[k].func_order;
+								axctx->qnmap[i].qruns[m].query_nodes[n].func_endpoints[k].func_level = func_ctx[k].func_level;
+							}
+							break;
+					    }
+					}
+					break;
+				}
+				break;
+			}
+			break;
+		}
+		break;
+	}
+}
+
+void register_aggregator_endpoints_for_query(CManager cm, struct axon *axctx, char *coord_contact_list, int qid, int num_recs, 
+struct stone_context *stone_ctx, struct func_context *func_ctx) {
+	for(int i = 0; i < 5; i++) {
+		if(strcmp(axctx->qnmap[i].query_coord_contact_list, coord_contact_list) == 0) {
+			for(int m = 0; m < 5; m++) {
+				if(axctx->qnmap[i].qruns[m].query_id == qid) {
+					printf("Registering aggregator endpoint at node : %s \n", axctx->qnmap[i].qruns[m].query_aggregators[0].node_contact_list); 
+					for(int n = 0; n < 2; n++) {
+						//printf("Aggregator stone endpoint index : %d stone id : %d .. \n", n, stone_ctx[n].stone_id); 
+						axctx->qnmap[i].qruns[m].query_aggregators[0].stone_endpoints[n].stone_id = stone_ctx[n].stone_id;
+						//printf("Aggregator stone endpoint index : %d stone action id : %d .. \n", n, stone_ctx[n].stone_action); 
+						axctx->qnmap[i].qruns[m].query_aggregators[0].stone_endpoints[n].stone_action = stone_ctx[n].stone_action;
+						//printf("Aggregator stone endpoint index : %d split stone id : %d .. \n", n, stone_ctx[n].split_stone); 
+						axctx->qnmap[i].qruns[m].query_aggregators[0].stone_endpoints[n].split_stone = stone_ctx[n].split_stone;
+						//printf("Aggregator stone endpoint index : %d split action id : %d .. \n", n, stone_ctx[n].split_action); 
+						axctx->qnmap[i].qruns[m].query_aggregators[0].stone_endpoints[n].split_action = stone_ctx[n].split_action;
+						axctx->qnmap[i].qruns[m].query_aggregators[0].func_endpoints[n].func_name = func_ctx[n].func_name;
+						axctx->qnmap[i].qruns[m].query_aggregators[0].func_endpoints[n].in_format = func_ctx[n].in_format;
+						axctx->qnmap[i].qruns[m].query_aggregators[0].func_endpoints[n].out_format = func_ctx[n].out_format;
+						axctx->qnmap[i].qruns[m].query_aggregators[0].func_endpoints[n].func_order = func_ctx[n].func_order;
+						axctx->qnmap[i].qruns[m].query_aggregators[0].func_endpoints[n].func_level = func_ctx[n].func_level;
+					}
+					break;
+				}
+				break;
+			}
+			break;
+		}
+		break;
+	}
+}
+
+void register_nodes_for_query(struct axon *axctx, int query_id, char*coord_contact_list, int num_deploy_nodes, char **deploy_nodes_contact_list, 
+int is_query_deployed, int is_query_running) {
+	int is_registered = 0;
+	for(int i = 0; i < 5; i++) {
+		if(strcmp(axctx->qnmap[i].query_coord_contact_list, coord_contact_list) == 0) {
+			for(int j = 0 ; j < 5; j++) {
+				if(axctx->qnmap[i].qruns[j].query_id == query_id) {
+					for(int k = 0; k < num_deploy_nodes; k++) {
+						axctx->qnmap[i].qruns[j].query_nodes[k].node_contact_list = strdup(deploy_nodes_contact_list[k]);
+						axctx->qnmap[i].qruns[j].query_nodes[k].is_query_deployed = is_query_deployed;
+						axctx->qnmap[i].qruns[j].query_nodes[k].is_query_running = is_query_running;
+					}
+					is_registered = 1;
+				}
+			}
+		}
+		if(is_registered) break;
+	}
+}
+
+void register_aggregators_for_query(struct axon *axctx, int query_id, char *coord_contact_list, int num_deploy_aggregators, 
+char **deploy_aggregators_contact_list, int is_query_deployed, int is_query_running) {
+	int is_registered = 0;
+	for(int i = 0; i < 5; i++) {
+		if(strcmp(axctx->qnmap[i].query_coord_contact_list, coord_contact_list) == 0) {
+			for(int j = 0 ; j < 5; j++) {
+				if(axctx->qnmap[i].qruns[j].query_id == query_id) {
+					for(int k = 0; k < num_deploy_aggregators; k++) {
+						axctx->qnmap[i].qruns[j].query_aggregators[k].node_contact_list = strdup(deploy_aggregators_contact_list[k]);
+						axctx->qnmap[i].qruns[j].query_aggregators[k].is_query_deployed = is_query_deployed;
+						axctx->qnmap[i].qruns[j].query_aggregators[k].is_query_running = is_query_running;
+					}
+					is_registered = 1;
+				}
+			}
+		}
+		if(is_registered) break;
+	}
+}
+
+void register_queries_to_axon(CManager cm, struct axon *axctx, char *src_contact_list, char *coord_contact_list, int qid, int qtype, 
+int is_query_deployed, int is_query_on, int graph_id, int num_funcs, struct func_rec *func_recs) {
+	int found = 0;
+	for(int i = 0; i < 5; i++) {
+		if(axctx->qnmap[i].query_coord_contact_list == NULL) {
+			axctx->qnmap[i].query_src_contact_list = strdup(src_contact_list); 
+			axctx->qnmap[i].query_coord_contact_list = strdup(coord_contact_list); 
+			for(int j = 0; j < 5; j++) {
+				if(axctx->qnmap[i].qruns[j].query_id == -1) {
+					axctx->qnmap[i].qruns[j].query_id = qid;
+					axctx->qnmap[i].qruns[j].query_type = qtype;
+					axctx->qnmap[i].qruns[j].is_query_deployed = is_query_deployed;
+					axctx->qnmap[i].qruns[j].is_query_on = is_query_on;
+					axctx->qnmap[i].qruns[j].graph_id = graph_id; // Field not required to be removed
+					for(int k = 0; k < num_funcs; k++) {
+						axctx->qnmap[i].qruns[j].func_recs[k].func_name = strdup(func_recs[k].func_name);
+						axctx->qnmap[i].qruns[j].func_recs[k].in_format = strdup(func_recs[k].in_format);
+						axctx->qnmap[i].qruns[j].func_recs[k].out_format = strdup(func_recs[k].out_format);
+						axctx->qnmap[i].qruns[j].func_recs[k].func_type = func_recs[k].func_type;
+						axctx->qnmap[i].qruns[j].func_recs[k].func_order = func_recs[k].func_order;
+						axctx->qnmap[i].qruns[j].func_recs[k].func_level = func_recs[k].func_level;
+					}
+					break;
+				}
+			}
+		}
+	}
+}
+
+void register_monitors_to_axon(struct axon *axctx, char *node_contact_list, char *key, char *mon_attr, EVstone split_stone, EVaction split_action, 
+char *out_format) {
+	int found = 0;
+	for(int i = 0; i < 5; i++) {
+		if(axctx->mnmap[i].monitors_node_contact_list == NULL || strcmp(axctx->mnmap[i].monitors_node_contact_list, node_contact_list) == 0 ) {
+			axctx->mnmap[i].monitors_node_contact_list = strdup(node_contact_list); 
+			printf("Monitor deployed at node : %s ..\n " , axctx->mnmap[i].monitors_node_contact_list);
+			for(int j = 0; j < 2; j++) {
+				if(axctx->mnmap[i].msmap[j].monitors_key == NULL) {
+					axctx->mnmap[i].msmap[j].monitors_key = strdup(key);
+					axctx->mnmap[i].msmap[j].monitors_type = strdup(mon_attr);
+					axctx->mnmap[i].msmap[j].monitors_stream_id = split_stone;
+					axctx->mnmap[i].msmap[j].monitors_split_action = split_action;
+					axctx->mnmap[i].msmap[j].monitors_data_format = strdup(out_format);
+					found = 1;
+					break;
+				}
+			}
+			if(found) break;
+		}
+	}
+}
+
+int check_coord_is_query_graph_deployed(struct axon *axctx, int qid, int graph_id, int total_deploy_aggregators, int total_deploy_nodes) {
+	int query_deploy = 0; int found = 0;
+	for(int i = 0; i < 5 ; i++) {
+		if(axctx->qnmap[i].qruns != NULL) {
+			for(int j = 0; j < 5; j++) {
+				if(axctx->qnmap[i].qruns[j].query_id == qid && axctx->qnmap[i].qruns[j].graph_id == graph_id) {
+					printf("IS MONITORING GRAPH ID : %d DEPLOYED COUNT : %d EQUALS NUM_DEPLOY_NODES %d ...\n", 
+					axctx->qnmap[i].qruns[j].graph_id, axctx->qnmap[i].qruns[j].is_query_deployed, 
+					(total_deploy_aggregators + total_deploy_nodes - 1));
+					if(axctx->qnmap[i].qruns[j].is_query_deployed == (total_deploy_aggregators + total_deploy_nodes - 1)) {
+						query_deploy = 1;
+						break;
+					}
+				}
+			}
+			break;
+		}
+	}
+	if(query_deploy) {
+		printf("Monitoring Graph : %d is deployed ...\n", qid);
+	}
+	return query_deploy;
+}
+	
+void register_nodes_graph_deployed_for_query(CManager cm, struct axon *axctx, int num_deploy_nodes, char *deploy_contact_list, 
+int qid) {
+	int query_deploy = 0; int found = 0;
+	for(int i = 0; i < 5 ; i++) {
+		if(axctx->qnmap[i].qruns != NULL) {
+			for(int j = 0; j < 5; j++) {
+				if(axctx->qnmap[i].qruns[j].query_id == qid && axctx->qnmap[i].qruns[j].graph_id == qid) {
+					for(int k = 0; k < num_deploy_nodes; k++) {
+						if(strcmp(axctx->qnmap[i].qruns[j].query_nodes[k].node_contact_list, deploy_contact_list) == 0) {
+							printf("Marking monitoring node graph deployed at node : %s ...\n", 
+							axctx->qnmap[i].qruns[j].query_nodes[k].node_contact_list);
+							axctx->qnmap[i].qruns[j].query_nodes[k].is_query_deployed = 1;
+							found = 1;
+							break;
+						}
+					}
+					if(found) {
+						axctx->qnmap[i].qruns[j].is_query_deployed += 1;
+						break;
+					}
+				}
+			}
+			if(found) break;
+		}
+	}
+}
+
+void register_aggregator_graph_deployed_for_query(CManager cm, struct axon *axctx, int num_deploy_aggregators, char *deploy_contact_list, 
+int qid) {
+	int query_deploy = 0; int found = 0;
+	for(int i = 0; i < 5 ; i++) {
+		if(axctx->qnmap[i].qruns != NULL) {
+			for(int j = 0; j < 5; j++) {
+				if(axctx->qnmap[i].qruns[j].query_id == qid && axctx->qnmap[i].qruns[j].graph_id == qid) {
+					for(int k = 0; k < num_deploy_aggregators; k++) {
+						if(strcmp(axctx->qnmap[i].qruns[j].query_aggregators[k].node_contact_list, deploy_contact_list) == 0) {
+							printf("Marking monitoring aggregator graph deployed at node : %s ...\n", 
+							axctx->qnmap[i].qruns[j].query_aggregators[k].node_contact_list);
+							axctx->qnmap[i].qruns[j].query_aggregators[k].is_query_deployed = 1;
+							found = 1;
+							break;
+						}
+					}
+					if(found) {
+						axctx->qnmap[i].qruns[j].is_query_deployed += 1;
+						break;
+					}
+				}
+			}
+			if(found) break;
+		}
+	}
+}
+
+int check_coord_is_nodes_graph_deployed_for_query(struct axon *axctx, int num_deploy_nodes, char *deploy_contact_list, int qid, int graph_id) {
+	int query_deploy = 0; int found = 0;
+	for(int i = 0; i < 5 ; i++) {
+		if(axctx->qnmap[i].qruns != NULL) {
+			for(int j = 0; j < 5; j++) {
+				if(axctx->qnmap[i].qruns[j].query_id == qid && axctx->qnmap[i].qruns[j].graph_id == graph_id) {
+					for(int k = 0; k < num_deploy_nodes; k++) {
+						if(strcmp(axctx->qnmap[i].qruns[j].query_nodes[k].node_contact_list, deploy_contact_list) == 0) {
+							query_deploy = axctx->qnmap[i].qruns[j].query_nodes[k].is_query_deployed;
+							found = 1;
+							break;
+						}
+					}
+					if(found) break;
+				}
+			}
+			if(found) break;
+		}
+	}
+	printf("Coordinator confirm monitoring node graph id : %d DEPLOYED : %d on node : %s ...\n", qid, query_deploy, deploy_contact_list);
+	return query_deploy;
+}
+
+int check_coord_is_aggregator_graph_deployed_for_query(struct axon *axctx, int num_deploy_aggregators, char *deploy_contact_list, 
+int qid, int graph_id) {
+	int query_deploy = 0; int found = 0;
+	for(int i = 0; i < 5 ; i++) {
+		if(axctx->qnmap[i].qruns != NULL) {
+			for(int j = 0; j < 5; j++) {
+				if(axctx->qnmap[i].qruns[j].query_id == qid && axctx->qnmap[i].qruns[j].graph_id == graph_id) {
+					for(int k = 0; k < num_deploy_aggregators; k++) {
+						if(strcmp(axctx->qnmap[i].qruns[j].query_aggregators[k].node_contact_list, deploy_contact_list) == 0) {
+							query_deploy = axctx->qnmap[i].qruns[j].query_aggregators[k].is_query_deployed;
+							found = 1;
+							break;
+						}
+					}
+					if(found) break;
+				}
+			}
+			if(found) break;
+		}
+	}
+	printf("Coordinator confirm monitoring aggregator graph id : %d DEPLOYED : %d on node : %s ...\n", qid, query_deploy, deploy_contact_list);
+	return query_deploy;
+}
+
+void get_deployable_nodes_from_coord(struct axon *axctx, char *coord_contact_list, struct deploy_nodes_context *deploy_nodes_ctx) {
+	int deployable_nodes_count = 0;
+	for(int i = 0; i < 5 ; i++) {
+		if(axctx->comap[i].node_coord_contact_list != NULL) {
+			if(strcmp(axctx->comap[i].node_coord_contact_list, coord_contact_list) == 0) {
+				for(int j = 0; j < 5; j++) {
+					if(axctx->comap[i].node_child_contact_list[j] != NULL) {
+						deployable_nodes_count += 1; 
+					}
+				}
+				deploy_nodes_ctx->num_deploy_nodes = deployable_nodes_count;
+				deploy_nodes_ctx->deploy_nodes_contact_list = (char**) calloc(deployable_nodes_count, sizeof(char**));
+				for(int j = 0; j < 5; j++) {
+					if(axctx->comap[i].node_child_contact_list[j] != NULL) {
+						for(int k = 0; k < deploy_nodes_ctx->num_deploy_nodes; k++) {
+							if(deploy_nodes_ctx->deploy_nodes_contact_list[k] == NULL) {
+								deploy_nodes_ctx->deploy_nodes_contact_list[k] = strdup(axctx->comap[i].node_child_contact_list[j]); 
+								break;
+							}
+						}
+					}
+				}
+				break;
+			}
+		}
+	}
+}
+
+void get_deployable_aggregators_from_coord(struct axon *axctx, char *coord_contact_list, struct deploy_nodes_context *deploy_aggregators_ctx) {
+	for(int i = 0; i < 5 ; i++) {
+		if(axctx->comap[i].node_coord_contact_list != NULL) {
+			if(strcmp(axctx->comap[i].node_coord_contact_list, coord_contact_list) == 0) {
+				if(axctx->comap[i].node_aggr_contact_list != NULL) {
+					deploy_aggregators_ctx->num_deploy_nodes = 1;
+					deploy_aggregators_ctx->deploy_nodes_contact_list = (char**) calloc(1, sizeof(char**));
+					deploy_aggregators_ctx->deploy_nodes_contact_list[0] = strdup(axctx->comap[i].node_aggr_contact_list);
+					break;
+				}
+			}
+		}
+	}
+}
+
+int check_is_aggregator_coord(struct axon *axctx, int num_deploy_aggregators, char **deploy_aggregators_contact_list, char *coord_contact_list) {
+	int check = 0; // Why not just do strcmp of both aggregator and coord contact list, they should be same 
+	for(int i = 0; i < 5 ; i++) {
+		if(axctx->comap[i].node_contact_list != NULL && (strcmp(axctx->comap[i].node_contact_list, coord_contact_list) == 0)) {
+			if(axctx->comap[i].node_coord_contact_list != NULL 
+				&& (strcmp(axctx->comap[i].node_coord_contact_list, deploy_aggregators_contact_list[num_deploy_aggregators - 1]) == 0)){
+				check = 1;
+				break;
+			}
+		}
+	}
+	if(check) {
+		printf("Node marked aggregator : %s is also coordinator ...\n", deploy_aggregators_contact_list[0]);
+	}
+	return check;
+}
+
+int check_is_coord_aggregator(struct axon *axctx, char *coord_contact_list) {
+	int check = 0; 
+	for(int i = 0; i < 5 ; i++) {
+		if(axctx->comap[i].node_contact_list != NULL && (strcmp(axctx->comap[i].node_contact_list, coord_contact_list) == 0)) {
+			if(axctx->comap[i].node_aggr_contact_list != NULL 
+				&& (strcmp(axctx->comap[i].node_aggr_contact_list, coord_contact_list) == 0)) {
+				check = 1;
+				break;
+			}
+		}
+	}
+	if(check) {
+		printf("Coordinator : %s marked is aggregator...\n", coord_contact_list);
+	}
+	return check;
+}
+
+struct control_comp *get_coord_control_comps(struct axon *axctx, char *coord_contact_list) {
+	int check = 0; struct control_comp *ctrl_comp = NULL; 
+	for(int i = 0; i < 5 ; i++) {
+		if(axctx->comap[i].node_contact_list != NULL) {
+			if(strcmp(axctx->comap[i].node_contact_list, coord_contact_list) == 0) {
+				ctrl_comp = (control_comp *) calloc(1, sizeof(struct control_comp));
+				ctrl_comp->node_contact_list = axctx->comap[i].node_contact_list;
+				ctrl_comp->node_coord_contact_list = axctx->comap[i].node_coord_contact_list;
+				ctrl_comp->node_aggr_contact_list = axctx->comap[i].node_aggr_contact_list;
+				ctrl_comp->node_actu_contact_list = axctx->comap[i].node_actu_contact_list;
+				break;
+			}
+		}
+	}
+	return ctrl_comp;
+}
+
+int check_is_coord_control_comps_assigned(struct axon *axctx, char *coord_contact_list) {
+	int check = 0; 
+	for(int i = 0; i < 5 ; i++) {
+		if(axctx->comap[i].node_contact_list != NULL && (strcmp(axctx->comap[i].node_contact_list, coord_contact_list) == 0)) {
+			if(axctx->comap[i].node_coord_contact_list != NULL && axctx->comap[i].node_aggr_contact_list != NULL 
+				&& axctx->comap[i].node_actu_contact_list != NULL) {
+				check = 1;
+				break;
+			}
+		}
+	}
+	if(check) {
+		printf("All control components are assigned to coordinator ...\n");
+	}
+	return check;
+}
+
+int check_is_node_coord(struct axon *axctx, char *coord_contact_list, char *node_contact_list) {
+	int check = 0; int i = 0;
+	for(int i = 0; i < 5 ; i++) {
+		if(axctx->comap[i].node_contact_list != NULL && (strcmp(axctx->comap[i].node_contact_list, coord_contact_list) == 0)) {
+			check = 1;
+			break;
+		}
+	}
+	if(check) {
+		printf("Node is marked as coordinator...\n");
+	}
+	return check;
+}
+
+void init_coord_node_state(struct cyton *cyctx, struct axon *axctx) {
+	for(int i = 0; i < 5 ; i++) {
+		if(axctx->comap[i].node_contact_list == NULL) {
+			// TODO Change node contact list to populate from node coord contact list
+			axctx->comap[i].node_contact_list = strdup(cyctx->nomap[0].node_contact_list);
+			axctx->comap[i].node_coord_contact_list = strdup(cyctx->nomap[0].node_coord_contact_list);
+			axctx->comap[i].node_aggr_contact_list = strdup(cyctx->nomap[0].node_aggr_contact_list);
+			axctx->comap[i].node_actu_contact_list = strdup(cyctx->nomap[0].node_actu_contact_list);
+			for(int j = 0; j < 5; j++) {
+				if(axctx->comap[i].node_child_contact_list[j] == NULL) {
+					axctx->comap[i].node_child_contact_list[j] = strdup(cyctx->nomap[0].node_contact_list);
+					break;
+				}
+			}
+			break;
+		}
+	}
+}
+
+int check_if_nodes_deployed_count(struct axon *axctx, int num_to_deploy, char *coord_contact_list) {
+	int found = 0; int num_deploy_count = 0;
+	for(int i = 0; i < 5; i++) {
+		if(strcmp(axctx->comap[i].node_coord_contact_list, coord_contact_list) == 0) {
+			for(int j = 0; j < 5; j++) {
+				if(axctx->comap[i].node_child_contact_list[j] != NULL) {
+					num_deploy_count += 1; 
+				}
+			}
+			if(num_deploy_count == num_to_deploy) {
+				found = 1;
+			} 
+		}
+		if(found) break;
+	}
+	return found;
+}
+
+void add_coord_node_child_state(struct axon *axctx, struct node_boot *node_msg) {
+	int found = 0;
+	for(int i = 0; i < 5; i++) {
+		if(strcmp(axctx->comap[i].node_coord_contact_list, (node_msg)->bootserver_contact_list) == 0) {
+			for(int j = 0; j < 5; j++) {
+				if(axctx->comap[i].node_child_contact_list[j] == NULL) {
+					axctx->comap[i].node_child_contact_list[j] = strdup((node_msg)->node_contact_list); 
+					found = 1; 
+					break;
+				}
+			}
+			if(found) break;
+		}
+	}
+}	

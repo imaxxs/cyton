@@ -1,0 +1,65 @@
+K 25
+svn:wc:ra_dav:version-url
+V 39
+/kaos/!svn/ver/7561/cyton/trunk/metrics
+END
+Makefile.in
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/kaos/!svn/ver/7560/cyton/trunk/metrics/Makefile.in
+END
+metricssample-old.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/kaos/!svn/ver/7560/cyton/trunk/metrics/metricssample-old.cpp
+END
+metrics.c
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/kaos/!svn/ver/7560/cyton/trunk/metrics/metrics.c
+END
+metrics.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/kaos/!svn/ver/7560/cyton/trunk/metrics/metrics.cpp
+END
+Makefile.am
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/kaos/!svn/ver/7560/cyton/trunk/metrics/Makefile.am
+END
+metricssample.c
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/kaos/!svn/ver/7560/cyton/trunk/metrics/metricssample.c
+END
+metricssample.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/kaos/!svn/ver/7560/cyton/trunk/metrics/metricssample.cpp
+END
+metrics.h
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/kaos/!svn/ver/7560/cyton/trunk/metrics/metrics.h
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/kaos/!svn/ver/7560/cyton/trunk/metrics/Makefile
+END
+metricssample.h
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/kaos/!svn/ver/7560/cyton/trunk/metrics/metricssample.h
+END

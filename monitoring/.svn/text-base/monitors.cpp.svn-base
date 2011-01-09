@@ -1,0 +1,182 @@
+#include "monitors.h"
+
+static FMField sensor_field_list[] = 
+{
+	{"sampling_window", "double", sizeof(double), FMOffset(sensor_rec_ptr, sampling_window)},
+	{"sampling_rate", "integer", sizeof(int), FMOffset(sensor_rec_ptr, sampling_rate)},
+	{"timestamp", "double", sizeof(double), FMOffset(sensor_rec_ptr, timestamp)},
+	{"attr_name", "string", sizeof(char*), FMOffset(sensor_rec_ptr, attr_name)},
+	{"rec_val", "float", sizeof(float), FMOffset(sensor_rec_ptr, rec_val)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMStructDescRec sensor_format_list[] = 
+{
+    {"sensor", sensor_field_list, sizeof(sensor_rec), NULL},
+    {NULL, NULL}
+};
+
+/*
+void cpu_idle_data(struct sensor_rec *cpu_usage) {
+	struct timeval now;
+	gettimeofday(&now, NULL);
+	cpu_usage->sampling_window = 2;
+	cpu_usage->sampling_rate = 1;
+	cpu_usage->timestamp = now.tv_sec * 1.0e6 + now.tv_usec;
+	cpu_usage->attr_name = "cpu_idle";
+	cpu_usage->rec_val = cpu_idle_func(); 
+}
+
+void mem_free_data(struct sensor_rec *mem_usage) {
+	struct timeval now;
+	gettimeofday(&now, NULL);
+	mem_usage->sampling_window = 2;
+	mem_usage->sampling_rate = 1;
+	mem_usage->timestamp = now.tv_sec * 1.0e6 + now.tv_usec;
+	mem_usage->attr_name = "mem_free";
+	mem_usage->rec_val = mem_free_func(); 
+}*/
+
+char *get_cpu_mon_metrics_ECL = "{\n\
+\toutput.sampling_window = 10;\n\
+\toutput.sampling_rate = 5;\n\
+\toutput.timestamp = gettimeofday_func();\n\
+\toutput.attr_name = \"cpu_idle\";\n\
+\toutput.rec_val = cpu_idle_func();\n\
+}";
+
+char *get_mem_mon_metrics_ECL = "{\n\
+\toutput.sampling_window = 10;\n\
+\toutput.sampling_rate = 5;\n\
+\toutput.timestamp = gettimeofday_func();\n\
+\toutput.attr_name = \"mem_free\";\n\
+\toutput.rec_val = mem_free_func();\n\
+}";
+
+/*
+int get_cpu_mon_metrics_data(CManager cm, void *message, void *client_data, attr_list attrs) {
+	if(strcmp(((char *)client_data), "cpu_idle") == 0) {
+		struct sensor_rec* cpu_usage = (struct sensor_rec *) calloc(1, sizeof(struct sensor_rec));
+		cpu_idle_data(cpu_usage);
+	}
+	return 1;
+}
+
+int get_mem_mon_metrics_data(CManager cm, void *message, void *client_data, attr_list attrs) {
+	if(strcmp(((char *)client_data), "mem_free") == 0) {
+		struct sensor_rec* mem_usage = (struct sensor_rec *) calloc(1, sizeof(struct sensor_rec));
+		mem_free_data(mem_usage);
+	}
+	return 1;
+}*/
+
+/*
+void *cpu_usage_stream(void *arg) {
+	do {
+		struct sensor_rec *cpu_usage = (struct sensor_rec *) calloc(1, sizeof(sensor_rec));
+		cpu_idle_data(cpu_usage);
+		EVsubmit(((EVsource)arg), cpu_usage, NULL);
+		free(cpu_usage);
+		sleep(1);
+	} while (1);
+	pthread_exit(NULL);
+}
+
+void *mem_usage_stream(void *arg) {
+	do {
+		struct sensor_rec *mem_usage = (struct sensor_rec *) calloc(1, sizeof(sensor_rec));
+		mem_free_data(mem_usage);
+		EVsubmit(((EVsource)arg), mem_usage, NULL);
+		free(mem_usage);
+		sleep(1);
+	} while (1);
+	pthread_exit(NULL);
+}*/
+
+void create_monitors_stream(CManager cm, char *mon_type, char *resource_type, char *mon_metric, struct stone_context *stone_ctx, 
+struct func_context *func_ctx, struct mon_context *mon_ctx, struct sample_context *sample_ctx) {
+	if((strcmp(mon_type, "base-perf") == 0) && (strcmp(resource_type, "node_resource") == 0)) {
+		if(strcmp(mon_metric, "cpu") == 0) {
+			EVstone cpu_mon_split_stone = EValloc_stone (cm);
+			EVaction cpu_mon_split_action = EVassoc_split_action(cm, cpu_mon_split_stone, NULL);
+			printf("CPU mon split stone id : %d and split action id : %d \n", cpu_mon_split_stone, cpu_mon_split_action);
+
+			stone_ctx->stone_id = -1;
+			stone_ctx->stone_action = -1;
+			stone_ctx->split_stone = cpu_mon_split_stone;
+			stone_ctx->split_action = cpu_mon_split_action;
+			func_ctx->func_name = strdup(mon_metric);
+			func_ctx->in_format = "sensor";
+			func_ctx->out_format = "sensor";
+			func_ctx->func_level = 0;
+			mon_ctx->mon_key = strdup(mon_metric);
+			mon_ctx->mon_attr = strdup(mon_metric);
+			mon_ctx->mon_type = strdup(mon_type);
+			mon_ctx->mon_resource_type = strdup(resource_type);
+			EVsource cpu_mon_submit_handle = EVcreate_submit_handle(cm, cpu_mon_split_stone, sensor_format_list);
+				
+			EVstone cpu_mon_metric_stone = EValloc_stone (cm);
+			FMStructDescRec *mon_format_list = get_format_list(func_ctx->out_format);
+			char *mon_action_spec = create_transform_action_spec(NULL, mon_format_list, get_cpu_mon_metrics_ECL);
+			EVaction mon_metric_action = EVassoc_immediate_action (cm, cpu_mon_metric_stone, mon_action_spec, 0);
+			EVaction_set_output(cm, cpu_mon_metric_stone, mon_metric_action, 0, cpu_mon_split_stone);
+
+			attr_list cpu_mon_attr_list = create_attr_list();
+			atom_t node_cm_cpu_mon_stone_sampling_window_atom = -1; 
+			atom_t node_cm_cpu_mon_stone_sampling_sec_rate_atom = -1;
+			atom_t node_cm_cpu_mon_stone_sampling_usec_rate_atom = -1;
+
+			node_cm_cpu_mon_stone_sampling_window_atom = attr_atom_from_string("cpu_idle_sampling_window");
+			node_cm_cpu_mon_stone_sampling_sec_rate_atom = attr_atom_from_string("cpu_idle_sampling_sec_rate");
+			node_cm_cpu_mon_stone_sampling_usec_rate_atom = attr_atom_from_string("cpu_idle_sampling_usec_rate");
+
+			set_int_attr(cpu_mon_attr_list, node_cm_cpu_mon_stone_sampling_window_atom, 10);
+			set_int_attr(cpu_mon_attr_list, node_cm_cpu_mon_stone_sampling_sec_rate_atom, 5);
+			set_int_attr(cpu_mon_attr_list, node_cm_cpu_mon_stone_sampling_usec_rate_atom, 0);
+			EVset_attr_list(cm, cpu_mon_metric_stone, cpu_mon_attr_list);
+
+			EVenable_auto_stone(cm, cpu_mon_metric_stone, 5, 0);
+			
+		} else if(strcmp(mon_metric, "mem") == 0)  {
+			EVstone mem_mon_split_stone = EValloc_stone(cm);
+			EVaction mem_mon_split_action = EVassoc_split_action(cm, mem_mon_split_stone, NULL);
+			printf("Mem mon split stone id : %d and split action id : %d \n", mem_mon_split_stone, mem_mon_split_action);
+
+			stone_ctx->stone_id = -1;
+			stone_ctx->stone_action = -1;
+			stone_ctx->split_stone = mem_mon_split_stone;
+			stone_ctx->split_action = mem_mon_split_action;
+			func_ctx->func_name = strdup(mon_metric);
+			func_ctx->in_format = "sensor";
+			func_ctx->out_format = "sensor";
+			func_ctx->func_level = 0;
+			mon_ctx->mon_key = strdup(mon_metric);
+			mon_ctx->mon_attr = strdup(mon_metric);
+			mon_ctx->mon_type = strdup(mon_type);
+			mon_ctx->mon_resource_type = strdup(resource_type);
+			EVsource mem_mon_submit_handle = EVcreate_submit_handle(cm, mem_mon_split_stone, sensor_format_list);
+			
+			EVstone mem_mon_metric_stone = EValloc_stone (cm);
+			FMStructDescRec *mon_format_list = get_format_list(func_ctx->out_format);
+			char *mon_action_spec = create_transform_action_spec(NULL, mon_format_list, get_mem_mon_metrics_ECL);
+			EVaction mon_metric_action = EVassoc_immediate_action (cm, mem_mon_metric_stone, mon_action_spec, 0);
+			EVaction_set_output(cm, mem_mon_metric_stone, mon_metric_action, 0, mem_mon_split_stone);
+
+			attr_list mem_mon_attr_list = create_attr_list();
+			atom_t node_cm_mem_mon_stone_sampling_window_atom = -1; 
+			atom_t node_cm_mem_mon_stone_sampling_sec_rate_atom = -1;
+			atom_t node_cm_mem_mon_stone_sampling_usec_rate_atom = -1;
+
+			node_cm_mem_mon_stone_sampling_window_atom = attr_atom_from_string("mem_free_sampling_window");
+			node_cm_mem_mon_stone_sampling_sec_rate_atom = attr_atom_from_string("mem_free_sampling_sec_rate");
+			node_cm_mem_mon_stone_sampling_usec_rate_atom = attr_atom_from_string("mem_free_sampling_usec_rate");
+
+			set_int_attr(mem_mon_attr_list, node_cm_mem_mon_stone_sampling_window_atom, 10);
+			set_int_attr(mem_mon_attr_list, node_cm_mem_mon_stone_sampling_sec_rate_atom, 5);
+			set_int_attr(mem_mon_attr_list, node_cm_mem_mon_stone_sampling_usec_rate_atom, 0);
+			EVset_attr_list(cm, mem_mon_metric_stone, mem_mon_attr_list);
+
+			EVenable_auto_stone(cm, mem_mon_metric_stone, 5, 0);
+		}
+	}
+}

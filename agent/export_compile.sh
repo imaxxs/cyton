@@ -1,0 +1,1 @@
+gcc -g -o export_code export_code.c -I/net/hp41/chaos/rhe5-64/evpath/include  -I/net/hp41/chaos/include -L/net/hp41/chaos/rhe5-64/evpath/lib -L/net/hp41/chaos/rhe5-64/atl/lib -L/net/hp41/chaos/rhe5-64/gen_thread/lib -L/net/hp41/chaos/rhe5-64/ffs/lib -levpath  -ldl 

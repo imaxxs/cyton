@@ -1,0 +1,131 @@
+K 25
+svn:wc:ra_dav:version-url
+V 45
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps
+END
+libltdl_la-lt__alloc.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/libltdl_la-lt__alloc.Plo
+END
+libltdl_la-lt_error.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/libltdl_la-lt_error.Plo
+END
+libltdlc_la-lt_dlloader.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/libltdlc_la-lt_dlloader.Plo
+END
+libltdlc_la-lt__alloc.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/libltdlc_la-lt__alloc.Plo
+END
+libltdlc_la-lt_error.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/libltdlc_la-lt_error.Plo
+END
+dyld.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/dyld.Plo
+END
+libltdl_la-slist.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/libltdl_la-slist.Plo
+END
+libltdl_la-ltdl.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/libltdl_la-ltdl.Plo
+END
+libltdlc_la-slist.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/libltdlc_la-slist.Plo
+END
+libltdlc_la-ltdl.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/libltdlc_la-ltdl.Plo
+END
+argz.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/argz.Plo
+END
+loadlibrary.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/loadlibrary.Plo
+END
+libltdl_la-preopen.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/libltdl_la-preopen.Plo
+END
+libltdlc_la-preopen.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/libltdlc_la-preopen.Plo
+END
+dld_link.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/dld_link.Plo
+END
+dlopen.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/dlopen.Plo
+END
+lt__strl.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/lt__strl.Plo
+END
+load_add_on.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/load_add_on.Plo
+END
+lt__dirent.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/lt__dirent.Plo
+END
+libltdl_la-lt_dlloader.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/libltdl_la-lt_dlloader.Plo
+END
+shl_load.Plo
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/.deps/shl_load.Plo
+END

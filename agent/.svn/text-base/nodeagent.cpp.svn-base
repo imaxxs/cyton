@@ -1,0 +1,777 @@
+#include "nodeagent.h"
+
+struct context *ctx;
+
+static FMField in_field_list[] = 
+{
+	{"is_control", "integer", sizeof(int), FMOffset(node_boot_ptr, is_control)},
+	{"bootserver_contact_list", "string", sizeof(char*), FMOffset(node_boot_ptr, bootserver_contact_list)},
+	{"node_contact_list", "string", sizeof(char*), FMOffset(node_boot_ptr, node_contact_list)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMField out_field_list[] = 
+{
+	{"node_contact_list", "string", sizeof(char*), FMOffset(ret_node_coord_map_ptr, node_contact_list)},
+	{"node_coord_contact_list", "string", sizeof(char*), FMOffset(ret_node_coord_map_ptr, node_coord_contact_list)},
+	{"node_aggr_contact_list", "string", sizeof(char*), FMOffset(ret_node_coord_map_ptr, node_aggr_contact_list)},
+	{"node_actu_contact_list", "string", sizeof(char*), FMOffset(ret_node_coord_map_ptr, node_actu_contact_list)},
+	{"node_parent_contact_list", "string", sizeof(char*), FMOffset(ret_node_coord_map_ptr, node_parent_contact_list)},
+	{"node_child_contact_list", "string", sizeof(char*), FMOffset(ret_node_coord_map_ptr, node_child_contact_list)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMField control_field_list[] = 
+{
+	{"node_contact_list", "string", sizeof(char*), FMOffset(control_comp_ptr, node_contact_list)},
+	{"node_coord_contact_list", "string", sizeof(char*), FMOffset(control_comp_ptr, node_coord_contact_list)},
+	{"node_aggr_contact_list", "string", sizeof(char*), FMOffset(control_comp_ptr, node_aggr_contact_list)},
+	{"node_actu_contact_list", "string", sizeof(char*), FMOffset(control_comp_ptr, node_actu_contact_list)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMField stone_endpoint_field_list[] = 
+{
+	{"stone_id", "integer", sizeof(int), FMOffset(stone_context_ptr, stone_id)},
+	{"stone_action", "integer", sizeof(int), FMOffset(stone_context_ptr, stone_action)},
+	{"split_stone", "integer", sizeof(int), FMOffset(stone_context_ptr, split_stone)},
+	{"split_action", "integer", sizeof(int), FMOffset(stone_context_ptr, split_action)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMField func_endpoint_field_list[] = 
+{
+	{"func_name", "string", sizeof(char*), FMOffset(func_context_ptr, func_name)},
+	{"in_format", "string", sizeof(char*), FMOffset(func_context_ptr, in_format)},
+	{"out_format", "string", sizeof(char*), FMOffset(func_context_ptr, out_format)},
+	{"func_order", "integer", sizeof(int), FMOffset(func_context_ptr, func_order)},
+	{"func_level", "integer", sizeof(int), FMOffset(func_context_ptr, func_level)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMField mon_endpoint_field_list[] = 
+{
+	{"mon_key", "string", sizeof(char*), FMOffset(mon_context_ptr, mon_key)},
+	{"mon_attr", "string", sizeof(char*), FMOffset(mon_context_ptr, mon_attr)},
+	{"mon_type", "string", sizeof(char*), FMOffset(mon_context_ptr, mon_type)},
+	{"mon_resource_type", "string", sizeof(char*), FMOffset(mon_context_ptr, mon_resource_type)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMField node_graph_deploy_field_list[] = 
+{
+	{"graph_id", "integer", sizeof(int), FMOffset(node_graph_deploy_ptr, graph_id)},
+	{"is_graph_deployed", "integer", sizeof(int), FMOffset(node_graph_deploy_ptr, is_graph_deployed)},
+	{"node_contact_list", "string", sizeof(char*), FMOffset(node_graph_deploy_ptr, node_contact_list)},
+	{"node_type", "integer", sizeof(int), FMOffset(node_graph_deploy_ptr, node_type)},
+	{"stone_endpoints", "*(stone_endpoints[2])", sizeof(struct stone_context), FMOffset(node_graph_deploy_ptr, stone_endpoints)},
+	{"func_endpoints", "*(func_endpoints[2])", sizeof(struct func_context), FMOffset(node_graph_deploy_ptr, func_endpoints)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMField node_monitors_deploy_field_list[] = 
+{
+	{"node_contact_list", "string", sizeof(char*), FMOffset(node_monitors_deploy_ptr, node_contact_list)},
+	{"node_type", "integer", sizeof(int), FMOffset(node_monitors_deploy_ptr, node_type)},
+	{"stone_endpoints", "*(stone_endpoints[1])", sizeof(struct stone_context), FMOffset(node_monitors_deploy_ptr, stone_endpoints)},
+	{"func_endpoints", "*(func_endpoints[1])", sizeof(struct func_context), FMOffset(node_monitors_deploy_ptr, func_endpoints)},
+	{"mon_endpoints", "*(mon_endpoints[1])", sizeof(struct mon_context), FMOffset(node_monitors_deploy_ptr, mon_endpoints)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMField func_field_list[] = 
+{
+	{"func_name", "string", sizeof(char*), FMOffset(func_rec_ptr, func_name)},
+	{"in_format", "string", sizeof(char*), FMOffset(func_rec_ptr, in_format)},
+	{"out_format", "string", sizeof(char*), FMOffset(func_rec_ptr, out_format)},
+	{"flevel_start_point", "integer", sizeof(int), FMOffset(func_rec_ptr, flevel_start_point)},
+	{"flevel_end_point", "integer", sizeof(int), FMOffset(func_rec_ptr, flevel_end_point)},
+	{"func_type", "integer", sizeof(int), FMOffset(func_rec_ptr, func_type)},
+	{"func_order", "integer", sizeof(int), FMOffset(func_rec_ptr, func_order)},
+	{"func_level", "integer", sizeof(int), FMOffset(func_rec_ptr, func_level)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMField node_deploy_field_list[] = 
+{
+	{"node_contact_list", "string", sizeof(char*), FMOffset(node_deploy_ptr, node_contact_list)},
+	{"node_coord_contact_list", "string", sizeof(char*), FMOffset(node_deploy_ptr, node_coord_contact_list)},
+	{"node_type", "integer", sizeof(int), FMOffset(node_deploy_ptr, node_type)},
+	{"query_id", "integer", sizeof(int), FMOffset(node_deploy_ptr, query_id)},
+	{"graph_id", "integer", sizeof(int), FMOffset(node_deploy_ptr, graph_id)},
+	{"num_recs", "integer", sizeof(int), FMOffset(node_deploy_ptr, num_recs)},
+	{"func_recs", "func_recs[num_recs]", sizeof(struct func_rec), FMOffset(node_deploy_ptr, func_recs)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMStructDescRec in_format_list[] = 
+{
+    {"in_data", in_field_list, sizeof(node_boot), NULL},
+    {NULL, NULL}
+};
+
+static FMStructDescRec live_info_format_list[] = 
+{
+    {"live_info_data", in_field_list, sizeof(node_boot), NULL},
+    {NULL, NULL}
+};
+
+static FMStructDescRec node_info_format_list[] = 
+{
+    {"node_info_data", in_field_list, sizeof(node_boot), NULL},
+    {NULL, NULL}
+};
+
+static FMStructDescRec out_format_list[] =
+{
+    {"out_data", out_field_list, sizeof(ret_node_coord_map), NULL},
+    {NULL, NULL}
+};
+
+static FMStructDescRec control_format_list[] = 
+{
+    {"control_data", control_field_list, sizeof(control_comp), NULL},
+    {NULL, NULL}
+};
+
+static FMStructDescRec node_monitors_deploy_format_list[] = 
+{
+    {"node_monitors_deploy_data", node_monitors_deploy_field_list, sizeof(node_monitors_deploy), NULL},
+    {"stone_endpoints", stone_endpoint_field_list, sizeof(stone_context), NULL},
+    {"func_endpoints", func_endpoint_field_list, sizeof(func_context), NULL},
+    {"mon_endpoints", mon_endpoint_field_list, sizeof(mon_context), NULL},
+    {NULL, NULL}
+};
+
+static FMStructDescRec node_graph_deploy_format_list[] = 
+{
+    {"node_graph_deploy", node_graph_deploy_field_list, sizeof(node_graph_deploy), NULL},
+    {"stone_endpoints", stone_endpoint_field_list, sizeof(stone_context), NULL},
+    {"func_endpoints", func_endpoint_field_list, sizeof(func_context), NULL},
+    {NULL, NULL}
+};
+
+static FMStructDescRec node_deploy_format_list[] =
+{
+    {"node_deploy_data", node_deploy_field_list, sizeof(node_deploy), NULL},
+    {"func_recs", func_field_list, sizeof(func_rec), NULL},
+    {NULL, NULL}
+};
+
+void populate_entropy_query_funcs(struct func_rec *func_recs) {
+	func_recs[7].func_name = "dll:./../functions/libfunctions.la:rec_window";
+	func_recs[7].func_type = 3;  // Transform - Adds userdefined range to array of last 120 sec (cpu util) records
+	func_recs[7].func_order = 1;
+	func_recs[7].func_level = 1;
+	func_recs[7].flevel_start_point = 1;
+	func_recs[7].in_format = "sensor";
+	func_recs[7].out_format = "recs";
+
+	func_recs[6].func_name = "dll:./../functions/libfunctions.la:append_range";
+	func_recs[6].func_type = 3;  // Transform - Adds userdefined range to array of last 120 sec (cpu util) records
+	func_recs[6].func_order = 1;
+	func_recs[6].func_level = 1;
+	func_recs[6].in_format = "recs";
+	func_recs[6].out_format = "recs_range";
+
+	func_recs[5].func_name = "dll:./../functions/libfunctions.la:append_level";
+	func_recs[5].func_type = 3;  // Transform - Adds userdefined range to array of last 120 sec (cpu util) records
+	func_recs[5].func_order = 2;
+	func_recs[5].func_level = 1;
+	func_recs[5].in_format = "recs_range";
+	func_recs[5].out_format = "recs_range_level";
+
+	func_recs[4].func_name = "dll:./../functions/libfunctions.la:recs_range_levels";
+	func_recs[4].func_type = 3; // Transform - Takes array of last 120 sec (cpu util) records and bin records in userdefined range levels
+	func_recs[4].func_order = 3;
+	func_recs[4].func_level = 1;
+	func_recs[4].in_format = "recs_range_level";
+	func_recs[4].out_format = "recs_range_level_list";
+
+	func_recs[3].func_name = "dll:./../functions/libfunctions.la:recs_range_stats_list";
+	func_recs[3].func_type = 3; // Transform - Takes array of last 120 sec (cpu util) records and binned userdefined range levels and calculate count 
+	func_recs[3].func_order = 4;
+	func_recs[3].func_level = 1;
+	func_recs[3].flevel_end_point = 1;
+	func_recs[3].in_format = "recs_range_level_list";
+	func_recs[3].out_format = "recs_stats_range_list";
+
+	func_recs[2].func_name = "dll:./../functions/libfunctions.la:entropy_stats";
+	func_recs[2].func_type = 3; // Transform - Takes array of last 120 sec (cpu util) records and binned userdefined range levels and calculate count 
+	func_recs[2].func_order = 1;
+	func_recs[2].func_level = 2;
+	func_recs[2].flevel_start_point = 1;
+	func_recs[2].in_format = "recs_stats_range_list";
+	func_recs[2].out_format = "recs_entropy_stats";
+
+	func_recs[1].func_name = "dll:./../functions/libfunctions.la:append_entropy_stats_threshold";
+	func_recs[1].func_type = 3; // Transform - Adds userdefined threshold to the input data
+	func_recs[1].func_order = 2;
+	func_recs[1].func_level = 2;
+	func_recs[1].in_format = "recs_entropy_stats";
+	func_recs[1].out_format = "recs_entropy_stats_threshold";
+
+	func_recs[0].func_name = "dll:./../functions/libfunctions.la:entropy_stats_threshold_trigger";
+	func_recs[0].func_type = 4; // Router - Informs the coordinator that threshold violation occured as event
+	func_recs[0].func_order = 3;
+	func_recs[0].func_level = 2;
+	func_recs[0].flevel_end_point = 1;
+	func_recs[0].in_format = "recs_entropy_stats_threshold";
+	func_recs[0].out_format = "recs_entropy_stats_threshold";
+}
+
+void populate_range_query_funcs(struct func_rec *func_recs) {
+	func_recs[6].func_name = "dll:./../functions/libfunctions.la:rec_window";
+	func_recs[6].func_type = 3;  // Transform - Adds userdefined range to array of last 120 sec (cpu util) records
+	func_recs[6].func_order = 1;
+	func_recs[6].func_level = 1;
+	func_recs[6].flevel_start_point = 1;
+	func_recs[6].in_format = "sensor";
+	func_recs[6].out_format = "recs";
+
+	func_recs[5].func_name = "dll:./../functions/libfunctions.la:append_range";
+	func_recs[5].func_type = 3;  // Transform - Adds userdefined range to array of last 120 sec (cpu util) records
+	func_recs[5].func_order = 2;
+	func_recs[5].func_level = 1;
+	func_recs[5].in_format = "recs";
+	func_recs[5].out_format = "recs_range";
+
+	func_recs[4].func_name = "dll:./../functions/libfunctions.la:append_level";
+	func_recs[4].func_type = 3;  // Transform - Adds userdefined range to array of last 120 sec (cpu util) records
+	func_recs[4].func_order = 3;
+	func_recs[4].func_level = 1;
+	func_recs[4].in_format = "recs_range";
+	func_recs[4].out_format = "recs_range_level";
+
+	func_recs[3].func_name = "dll:./../functions/libfunctions.la:recs_range_levels";
+	func_recs[3].func_type = 3; // Transform - Takes array of last 120 sec (cpu util) records and bin records in userdefined range levels
+	func_recs[3].func_order = 4;
+	func_recs[3].func_level = 1;
+	func_recs[3].in_format = "recs_range_level";
+	func_recs[3].out_format = "recs_range_level_list";
+
+	func_recs[2].func_name = "dll:./../functions/libfunctions.la:recs_range_stats_list";
+	func_recs[2].func_type = 3; // Transform - Takes array of last 120 sec (cpu util) records and binned userdefined range levels and calculate count 
+	func_recs[2].func_order = 5;
+	func_recs[2].func_level = 1;
+	func_recs[2].flevel_end_point = 1;
+	func_recs[2].in_format = "recs_range_level_list";
+	func_recs[2].out_format = "recs_stats_range_list";
+
+	func_recs[1].func_name = "dll:./../functions/libfunctions.la:append_recs_stats_threshold";
+	func_recs[1].func_type = 3; // Transform - Adds userdefined threshold to the input data
+	func_recs[1].func_order = 1;
+	func_recs[1].func_level = 2;
+	func_recs[1].flevel_start_point = 1;
+	func_recs[1].in_format = "recs_stats_range_list";
+	func_recs[1].out_format = "recs_stats_threshold_range_list";
+
+	func_recs[0].func_name = "dll:./../functions/libfunctions.la:recs_stats_threshold_trigger";
+	func_recs[0].func_type = 4; // Router - Informs the coordinator that threshold violation occured as event
+	func_recs[0].func_order = 2;
+	func_recs[0].func_level = 2;
+	func_recs[0].flevel_end_point = 1;
+	func_recs[0].in_format = "recs_stats_threshold_range_list";
+	func_recs[0].out_format = "recs_stats_threshold_range_list";
+}
+
+void init_func_list(struct func_list *func_list_ptr) {
+	func_list_ptr->func_recs = (struct func_rec *) calloc(func_list_ptr->num_recs, sizeof(struct func_rec));
+	for(int i = 0; i < func_list_ptr->num_recs; i ++) {
+		func_list_ptr->func_recs[i].func_name = NULL;
+		func_list_ptr->func_recs[i].in_format = NULL;
+		func_list_ptr->func_recs[i].out_format = NULL;
+		func_list_ptr->func_recs[i].flevel_start_point = 0;
+		func_list_ptr->func_recs[i].flevel_end_point = 0;
+		func_list_ptr->func_recs[i].func_type = -1; 
+		func_list_ptr->func_recs[i].func_order = 0;
+		func_list_ptr->func_recs[i].func_level = -1;
+	}
+}
+
+static void update_coord_node_graph_data(CManager cm, CMConnection conn, void *msg, void *client_data, attr_list attrs) {
+	printf("Node updating coordinator that it deployed the graph ....\n");
+	if(((struct node_graph_deploy *)msg)->node_type == 1) {
+		register_aggregator_endpoints_for_query(cm, axctx, (cyctx->nomap[0]).node_coord_contact_list, ((struct node_graph_deploy *)msg)->graph_id, 
+		NUM_NODES, ((struct node_graph_deploy *)msg)->stone_endpoints, ((struct node_graph_deploy *)msg)->func_endpoints);
+		register_aggregator_graph_deployed_for_query(cm, (struct axon *)client_data, NUM_AGGREGATORS, 
+		((struct node_graph_deploy *)msg)->node_contact_list, ((struct node_graph_deploy *)msg)->graph_id);
+	} else if(((struct node_graph_deploy *)msg)->node_type == 0) {
+		register_nodes_endpoints_for_query(cm, axctx, ((struct node_graph_deploy *)msg)->node_contact_list, (cyctx->nomap[0]).node_coord_contact_list, 
+		((struct node_graph_deploy *)msg)->graph_id, NUM_NODES, ((struct node_graph_deploy *)msg)->stone_endpoints, 
+		((struct node_graph_deploy *)msg)->func_endpoints);
+		register_nodes_graph_deployed_for_query(cm, (struct axon *)client_data, NUM_NODES, ((struct node_graph_deploy *)msg)->node_contact_list, 
+		((struct node_graph_deploy *)msg)->graph_id); // Changed the num_deploy from 1 to 5
+	}
+}
+
+void populate_node_graph_deploy_msg(struct node_graph_deploy *node_graph_deploy_data, char *node_coord_contact_list, char *node_contact_list, int node_type, int qid, int graph_id, struct stone_context *stone_ctx, struct func_context *func_ctx) {
+	node_graph_deploy_data->graph_id = qid; 
+	node_graph_deploy_data->is_graph_deployed = 1; 
+	node_graph_deploy_data->node_contact_list = strdup(node_contact_list); 
+	node_graph_deploy_data->node_type = node_type; 
+	node_graph_deploy_data->stone_endpoints = (struct stone_context *) calloc(2, sizeof(struct stone_context));
+	node_graph_deploy_data->func_endpoints = (struct func_context *) calloc(2, sizeof(struct func_context));
+	for(int i = 0; i < 2; i++) {
+		node_graph_deploy_data->stone_endpoints[i].stone_id = stone_ctx[i].stone_id;
+		node_graph_deploy_data->stone_endpoints[i].stone_action = stone_ctx[i].stone_action;
+		node_graph_deploy_data->stone_endpoints[i].split_stone = stone_ctx[i].split_stone;
+		node_graph_deploy_data->stone_endpoints[i].split_action = stone_ctx[i].split_action;
+		node_graph_deploy_data->func_endpoints[i].func_name = func_ctx[i].func_name;
+		node_graph_deploy_data->func_endpoints[i].in_format = func_ctx[i].in_format;
+		node_graph_deploy_data->func_endpoints[i].out_format = func_ctx[i].out_format;
+		node_graph_deploy_data->func_endpoints[i].func_order = func_ctx[i].func_order;
+		node_graph_deploy_data->func_endpoints[i].func_level = func_ctx[i].func_level;
+	}
+}
+
+void msg_coord_for_deployed_graph_for_query(CManager cm, struct axon *axctx, char *node_coord_contact_list, char*node_contact_list, 
+int node_type, int qid, int graph_id, struct stone_context *stone_ctx, struct func_context *func_ctx) {
+	attr_list coord_attr_list = attr_list_from_string(node_coord_contact_list);
+
+	CMConnection conn = CMget_conn(cm, coord_attr_list);
+	if (conn == NULL) {
+		printf("No connection, attr list was :");
+		dump_attr_list(coord_attr_list);
+		printf("\n");
+		exit(1);
+	}
+	node_graph_deploy_format = CMregister_format(cm, node_graph_deploy_format_list);
+	
+	node_graph_deploy node_graph_deploy_data;
+	populate_node_graph_deploy_msg(&node_graph_deploy_data, node_coord_contact_list, node_contact_list, node_type, qid, graph_id, stone_ctx,
+	func_ctx);
+	CMwrite(conn, node_graph_deploy_format, &node_graph_deploy_data);
+}
+
+void create_node_graph_streams_network(CManager cm, struct axon *axctx, struct node_deploy *node_deploy) {
+	int stone_id = -1;
+	int stone_count = -1;
+	struct split_context *split_ctx = (struct split_context *) calloc(1, sizeof(struct split_context));
+	init_split_context(1, split_ctx);
+	struct stone_context *stone_ctx = (struct stone_context *) calloc(2, sizeof(struct stone_context));
+	init_stone_context(2, stone_ctx);
+	struct func_context *func_ctx = (struct func_context *)calloc(2, sizeof(struct func_context));
+	init_func_context(2, func_ctx);
+	for(int j = 0; j < node_deploy->num_recs; j++) {
+		if(node_deploy->func_recs[j].func_level == 1) { // Fixed bug for change func_level from 2 to 1
+			int local_stone = realize_vertex(cm, node_deploy->query_id, (node_deploy->func_recs[j]), stone_ctx, func_ctx, split_ctx); 
+			stone_count += 1;
+			if(stone_count > 0) {
+				realize_edge(cm, node_deploy->query_id, split_ctx, stone_id);
+				clean_split_context(1, split_ctx);
+			}
+			stone_id = local_stone;
+		}
+	}
+	msg_coord_for_deployed_graph_for_query(cm, axctx, node_deploy->node_coord_contact_list, node_deploy->node_contact_list,
+	node_deploy->node_type, node_deploy->query_id, node_deploy->graph_id, stone_ctx, func_ctx);
+	free(split_ctx);
+	free(stone_ctx);
+	free(func_ctx);
+}
+
+void create_node_aggregator_streams_network(CManager cm, struct axon *axctx, struct node_deploy *node_deploy) {
+	int stone_id = -1;
+	int stone_count = -1;
+	struct split_context *split_ctx = (struct split_context *) calloc(1, sizeof(struct split_context));
+	init_split_context(1, split_ctx);
+	struct stone_context *stone_ctx = (struct stone_context *) calloc(2, sizeof(struct stone_context));
+	init_stone_context(2, stone_ctx);
+	struct func_context *func_ctx = (struct func_context *)calloc(2, sizeof(struct func_context));
+	init_func_context(2, func_ctx);
+	for(int j = 0; j < node_deploy->num_recs; j++) {
+		if(node_deploy->func_recs[j].func_level == 2) {
+			int local_stone = realize_vertex(cm, node_deploy->query_id, (node_deploy->func_recs[j]), stone_ctx, func_ctx, split_ctx); 
+			stone_count += 1;
+			if(stone_count > 0) {
+				realize_edge(cm, node_deploy->query_id, split_ctx, stone_id);
+				clean_split_context(1, split_ctx);
+			}
+			stone_id = local_stone;
+		}
+	}
+	msg_coord_for_deployed_graph_for_query(cm, axctx, node_deploy->node_coord_contact_list, node_deploy->node_contact_list,
+	node_deploy->node_type, node_deploy->query_id, node_deploy->graph_id, stone_ctx, func_ctx);
+	free(split_ctx);
+	free(stone_ctx);
+	free(func_ctx);
+}
+
+static void deploy_funcs(CManager cm, CMConnection conn, void *msg, void *client_data, attr_list attrs) {
+	printf("Ready to deploy monitoring graph functions on node : %s  with node type : %d ....\n", ((struct node_deploy *)msg)->node_contact_list,
+	((struct node_deploy *)msg)->node_type);
+	if(((struct node_deploy *)msg)->node_type == 1) {
+		printf("Creating aggregator deploy monitoring graph functions on node %s ....\n", ((struct node_deploy *)msg)->node_contact_list);
+		create_node_aggregator_streams_network(cm, (struct axon *)client_data, (struct node_deploy *)msg);
+	} else if (((struct node_deploy *)msg)->node_type == 0){
+		printf("Creating node graph deploy monitoring graph functions on node %s ....\n", ((struct node_deploy *)msg)->node_contact_list);
+		create_node_graph_streams_network(cm, (struct axon *)client_data, (struct node_deploy *)msg);
+	}
+}
+
+void *deploy_entropy_query(void *arg) {
+	do {
+		sleep(60);
+		if(check_is_node_coord(((struct context *)arg)->cyctx, ((struct context *)arg)->cyctx->nomap[0].node_contact_list)) {
+			struct func_list *func_list_ptr = (struct func_list *) calloc(1, sizeof(struct func_list));
+			func_list_ptr->num_recs = 8;
+			init_func_list(func_list_ptr);
+			populate_entropy_query_funcs(func_list_ptr->func_recs);
+			deploy_monitoring_graph(cm, ((struct context *)arg)->axctx, ((struct context *)arg)->cyctx->nomap[0].node_contact_list, 
+			((struct context *)arg)->cyctx->nomap[0].node_coord_contact_list, 222, 0, 222, 1, "cpu", func_list_ptr->num_recs, func_list_ptr->func_recs);
+			break;
+		} 
+		sleep(30);
+		//if(current_time - start_time > 1000) break;
+	} while(1);
+	pthread_exit(NULL);
+}
+
+void *deploy_base_query(void *arg) {
+	do {
+		sleep(60);
+		if(check_is_node_coord(((struct context *)arg)->cyctx, ((struct context *)arg)->cyctx->nomap[0].node_contact_list)) {
+			struct func_list *func_list_ptr = (struct func_list *) calloc(1, sizeof(struct func_list));
+			func_list_ptr->num_recs = 7;
+			init_func_list(func_list_ptr);
+			populate_range_query_funcs(func_list_ptr->func_recs);
+			deploy_monitoring_graph(cm, ((struct context *)arg)->axctx, ((struct context *)arg)->cyctx->nomap[0].node_contact_list, 
+			((struct context *)arg)->cyctx->nomap[0].node_coord_contact_list, 111, 0, 111, 1, "cpu", func_list_ptr->num_recs, func_list_ptr->func_recs);
+			break;
+		} 
+		sleep(30);
+		//if(current_time - start_time > 1000) break;
+	} while(1);
+	pthread_exit(NULL);
+}
+
+static void update_coord_node_monitors_data(CManager cm, CMConnection conn, void *msg, void *client_data, attr_list attrs) {
+	printf("Node updating coordinator that it deployed the %s monitor at node : %s ...\n", 
+	(((struct node_monitors_deploy *)msg)->mon_endpoints)->mon_attr, ((struct node_monitors_deploy *)msg)->node_contact_list);
+
+	register_monitors_to_axon(((struct context *)client_data)->axctx, ((struct node_monitors_deploy *)msg)->node_contact_list, 
+	(((struct node_monitors_deploy *)msg)->mon_endpoints)->mon_key, (((struct node_monitors_deploy *)msg)->mon_endpoints)->mon_attr, 
+	(((struct node_monitors_deploy *)msg)->stone_endpoints)->split_stone, (((struct node_monitors_deploy *)msg)->stone_endpoints)->split_action, 
+	(((struct node_monitors_deploy *)msg)->func_endpoints)->out_format); 
+}
+
+void populate_node_monitors_deploy_msg(struct node_monitors_deploy *node_monitors_deploy_data, char *node_coord_contact_list, 
+char *node_contact_list, struct stone_context *stone_ctx, struct func_context *func_ctx, struct mon_context *mon_ctx) {
+	node_monitors_deploy_data->node_contact_list = strdup(node_contact_list);
+	node_monitors_deploy_data->node_type = 0;
+
+	node_monitors_deploy_data->stone_endpoints = (struct stone_context *) calloc(1, sizeof(struct stone_context));
+	node_monitors_deploy_data->stone_endpoints[0].stone_id = stone_ctx[0].stone_id;
+	node_monitors_deploy_data->stone_endpoints[0].stone_action = stone_ctx[0].stone_action;
+	node_monitors_deploy_data->stone_endpoints[0].split_stone = stone_ctx[0].split_stone;
+	node_monitors_deploy_data->stone_endpoints[0].split_action = stone_ctx[0].split_action;
+
+	node_monitors_deploy_data->func_endpoints = (struct func_context *) calloc(1, sizeof(struct func_context));
+	node_monitors_deploy_data->func_endpoints[0].func_name = strdup(func_ctx[0].func_name);
+	node_monitors_deploy_data->func_endpoints[0].in_format = strdup(func_ctx[0].in_format);
+	node_monitors_deploy_data->func_endpoints[0].out_format = strdup(func_ctx[0].out_format);
+	node_monitors_deploy_data->func_endpoints[0].func_order = func_ctx[0].func_order;
+	node_monitors_deploy_data->func_endpoints[0].func_level = func_ctx[0].func_level;
+
+	node_monitors_deploy_data->mon_endpoints = (struct mon_context *) calloc(1, sizeof(struct mon_context));
+	node_monitors_deploy_data->mon_endpoints[0].mon_key = mon_ctx[0].mon_key;
+	node_monitors_deploy_data->mon_endpoints[0].mon_attr = mon_ctx[0].mon_attr;
+	node_monitors_deploy_data->mon_endpoints[0].mon_type = mon_ctx[0].mon_type;
+	node_monitors_deploy_data->mon_endpoints[0].mon_resource_type = mon_ctx[0].mon_resource_type;
+}
+
+void msg_coord_for_monitors_streams(char *node_contact_list, char *node_coord_contact_list, struct stone_context *stone_ctx, 
+struct func_context *func_ctx, struct mon_context *mon_ctx, struct context *ctx) {
+	printf("Sending message to the coordinator about monitoring data stream ........ \n");
+	attr_list coord_attr_list = attr_list_from_string(node_coord_contact_list);
+
+	CMConnection conn = CMget_conn(cm, coord_attr_list);
+	if (conn == NULL) {
+		printf("No connection, attr list was :");
+		dump_attr_list(coord_attr_list);
+		printf("\n");
+		exit(1);
+	}
+	node_monitors_deploy_format = CMregister_format(cm, node_monitors_deploy_format_list);
+	CMregister_handler(node_monitors_deploy_format, update_coord_node_monitors_data, ctx);
+	
+	node_monitors_deploy node_monitors_deploy_data;
+	populate_node_monitors_deploy_msg(&node_monitors_deploy_data, node_coord_contact_list, node_contact_list, stone_ctx, func_ctx, mon_ctx);
+	CMwrite(conn, node_monitors_deploy_format, &node_monitors_deploy_data);
+}
+
+void *boot_monitors(void *arg) {
+	do {
+		if(check_is_node_control_comps_assigned(cyctx, cyctx->nomap[0].node_contact_list)) {
+			printf("Starting monitoring data structures ........ \n");
+			struct stone_context *stone_ctx = (struct stone_context *) calloc(1, sizeof(struct stone_context));
+			init_stone_context(1, stone_ctx);
+			struct func_context *func_ctx = (struct func_context *) calloc(1, sizeof(struct func_context));
+			init_func_context(1, func_ctx);
+			struct mon_context *mon_ctx = (struct mon_context *) calloc(1, sizeof(struct mon_context));
+			init_mon_context(1, mon_ctx);
+			struct sample_context *sample_ctx = (struct sample_context *) calloc(1, sizeof(struct sample_context));
+			init_sample_context(1, sample_ctx);
+			sample_ctx->sample_rate_sec = 10;
+			sample_ctx->sample_rate_usec = 0;
+			sample_ctx->sample_window_width = 120;
+			sample_ctx->sample_window_unit = 1;
+
+			CMregister_handler(node_monitors_deploy_format, update_coord_node_monitors_data, ((struct context *)arg));
+			create_monitors_stream(cm, "base-perf", "node_resource", "cpu", stone_ctx, func_ctx, mon_ctx, sample_ctx);
+			msg_coord_for_monitors_streams(cyctx->nomap[0].node_contact_list, cyctx->nomap[0].node_coord_contact_list, 
+			stone_ctx, func_ctx, mon_ctx, ((struct context *)arg));
+
+			clean_stone_context(1, stone_ctx);
+			clean_func_context(1, func_ctx);
+			clean_mon_context(1, mon_ctx);
+			clean_sample_context(1, sample_ctx);
+
+			create_monitors_stream(cm, "base-perf", "node_resource", "mem", stone_ctx, func_ctx, mon_ctx, sample_ctx);
+			msg_coord_for_monitors_streams(cyctx->nomap[0].node_contact_list, cyctx->nomap[0].node_coord_contact_list, 
+			stone_ctx, func_ctx, mon_ctx, ((struct context *)arg));
+
+			clean_stone_context(1, stone_ctx);
+			clean_func_context(1, func_ctx);
+			clean_mon_context(1, mon_ctx);
+			clean_sample_context(1, sample_ctx);
+
+			free(stone_ctx);
+			free(func_ctx);
+			free(mon_ctx);
+			free(sample_ctx);
+			break;
+		}
+		sleep(2);
+	} while (1);
+	pthread_exit(NULL);
+}
+
+//void *base_mon(void *arg) {
+//	start_data_collector("node_resource");
+//	start_data_sampling("node_resource", "cpu_mem", 10);
+//	pthread_exit(NULL);
+//}
+
+static void update_node_control_comps(CManager cm, CMConnection conn, void *msg, void *client_data, attr_list attrs) {
+	update_local_node_state_from_coord((struct cyton *)client_data, (struct control_comp *)msg);
+}
+ 
+void populate_node_ctrl_info(struct axon *axctx, struct control_comp *ctrl_comp, char *node_coord_contact_list, char *node_contact_list) {
+	// For now it just copies the coordinator as the one which is also aggregator and actuator
+	// But this can work otherwise also, with coordinator now looking into some of its own 'axon' state and getting the info
+	ctrl_comp->node_contact_list = strdup(node_contact_list); 
+	ctrl_comp->node_coord_contact_list = strdup(node_coord_contact_list); 
+	ctrl_comp->node_aggr_contact_list = strdup(node_coord_contact_list); 
+	ctrl_comp->node_actu_contact_list = strdup(node_coord_contact_list); 
+}
+
+static void msg_node_control_comps(CManager cm, CMConnection conn, void *msg, void *client_data, attr_list attrs) {
+	attr_list node_attr_list = attr_list_from_string(((struct node_boot *)msg)->node_contact_list);
+
+	CMConnection outconn = CMget_conn(cm, node_attr_list);
+	if (outconn == NULL) {
+		printf("No connection, attr list was :");
+		dump_attr_list(node_attr_list);
+		printf("\n");
+		exit(1);
+	}
+	control_info_format = CMregister_format(cm, control_format_list);
+	
+	control_comp ctrl_comp;
+	populate_node_ctrl_info((struct axon *)client_data, &ctrl_comp, ((struct node_boot *)msg)->bootserver_contact_list, 
+	((struct node_boot *)msg)->node_contact_list);
+	CMwrite(outconn, control_info_format, &ctrl_comp);
+}
+	
+void populate_node_info_msg(struct node_boot *node_info, char *node_coord_contact_list, char *node_contact_list) {
+	node_info->is_control = 1; 
+	node_info->bootserver_contact_list = strdup(node_coord_contact_list); 
+	node_info->node_contact_list = strdup(node_contact_list); 
+}
+
+void msg_coord_for_control_comps(char *node_coord_contact_list, char *node_contact_list) {
+	attr_list coord_attr_list = attr_list_from_string(node_coord_contact_list);
+
+	CMConnection conn = CMget_conn(cm, coord_attr_list);
+	if (conn == NULL) {
+		printf("No connection, attr list was :");
+		dump_attr_list(coord_attr_list);
+		printf("\n");
+		exit(1);
+	}
+	node_info_format = CMregister_format(cm, node_info_format_list);
+	
+	node_boot node_info;
+	populate_node_info_msg(&node_info, node_coord_contact_list, node_contact_list);
+	CMwrite(conn, node_info_format, &node_info);
+}
+
+void populate_node_live_msg(struct node_boot *nodelive_data, char *node_coord_contact_list, char *node_contact_list) {
+	nodelive_data->is_control = 1; 
+	nodelive_data->bootserver_contact_list = strdup(node_coord_contact_list); 
+	nodelive_data->node_contact_list = strdup(node_contact_list); 
+}
+
+void msg_coord_for_live_node(char *node_coord_contact_list, char *node_contact_list) {
+	attr_list coord_attr_list = attr_list_from_string(node_coord_contact_list);
+
+	CMConnection conn = CMget_conn(cm, coord_attr_list);
+	if (conn == NULL) {
+		printf("No connection, attr list was :");
+		dump_attr_list(coord_attr_list);
+		printf("\n");
+		exit(1);
+	}
+	live_info_format = CMregister_format(cm, live_info_format_list);
+	
+	node_boot nodelive_data;
+	populate_node_live_msg(&nodelive_data, node_coord_contact_list, node_contact_list);
+	printf("Sending node live flag \"%d\"\n", nodelive_data.is_control);
+	CMwrite(conn, live_info_format, &nodelive_data);
+}
+
+static void update_coord_node(CManager cm, CMConnection conn, void *msg, void *client_data, attr_list attrs) {
+	printf(" Child updating coordinator that its live now ....\n");
+	add_coord_node_child_state((struct axon *)client_data, ((struct node_boot *)msg));
+	/* To be done later - each node - gets there queries from coord for deployment
+	pthread_t thrQuery;
+	int rcQuery = pthread_create(&thrQuery, NULL, deploy_base_query, ctx);	
+	if (rcQuery) {
+		printf("ERROR; Query thread return code from pthread_create() is %d\n", rcQuery);
+		exit(-1);
+	}*/
+}
+	
+static void update_node(CManager cm, CMConnection conn, void *msg, void *client_data, attr_list attrs) {
+	update_local_node_state_from_boot((struct cyton *)client_data, ((struct ret_node_coord_map *)msg));
+	if(!check_is_node_control_comps_assigned((struct cyton *)client_data, ((struct ret_node_coord_map *)msg)->node_contact_list)) {
+		if(check_is_node_coord_assigned((struct cyton *)client_data, ((struct ret_node_coord_map *)msg)->node_contact_list)) {
+			if(!check_is_node_coord((struct cyton *)client_data, ((struct ret_node_coord_map *)msg)->node_contact_list)) {
+				msg_coord_for_control_comps(((struct ret_node_coord_map *)msg)->node_coord_contact_list, 
+				((struct ret_node_coord_map *)msg)->node_contact_list);
+			}
+			// Assuming coordinator gets always all the control components somehow from bootserver
+			// If not it can ask bootserver again by sending another message
+		}
+	} // Till here everything is about node local state, updating its control components
+	if(!check_is_node_coord((struct cyton *)client_data, ((struct ret_node_coord_map *)msg)->node_contact_list)) {
+		msg_coord_for_live_node(((struct ret_node_coord_map *)msg)->node_coord_contact_list, 
+		((struct ret_node_coord_map *)msg)->node_contact_list);
+	} else {
+		// Assuming coordinator gets always all the control components info i.e. coordinator, aggregator and actuators.
+		init_coord_node_state(cyctx, axctx);
+	}
+}
+
+void populate_node_ctrl_rec(struct node_boot *bootup_data, char *bootserver_cm_contact_list, char *node_cm_contact_list) {
+	bootup_data->is_control = 1; 
+	bootup_data->bootserver_contact_list = strdup(bootserver_cm_contact_list); 
+	bootup_data->node_contact_list = strdup(node_cm_contact_list); 
+}
+	
+void boot_node(char *bootserver_cm_contact_list, char *node_cm_contact_list, CManager cm) {
+	attr_list bootserver_cm_attr_list = attr_list_from_string(bootserver_cm_contact_list);
+
+	CMConnection conn = CMget_conn(cm, bootserver_cm_attr_list);
+	if (conn == NULL) {
+		printf("No connection, attr list was :");
+		dump_attr_list(bootserver_cm_attr_list);
+		printf("\n");
+		exit(1);
+	}
+	boot_in_format = CMregister_format(cm, in_format_list);
+	
+	node_boot bootup_data;
+	populate_node_ctrl_rec(&bootup_data, bootserver_cm_contact_list, node_cm_contact_list);
+	printf("Sending local node info to bootserver \"%s\"\n", node_cm_contact_list);
+	CMwrite(conn, boot_in_format, &bootup_data);
+}
+
+int main(int argc, char *argv[]) {
+    attr_list node_contact_list = NULL;
+    gen_pthread_init();
+    cm = CManager_create();
+	//CMfork_comm_thread(cm);
+
+    attr_list listen_list = NULL;
+	char *node_cm_contact_list;
+    CMlisten_specific(cm, listen_list);
+    node_contact_list = CMget_contact_list(cm);
+    if (node_contact_list) {
+		node_cm_contact_list = attr_list_to_string(node_contact_list);
+		free_attr_list(node_contact_list);
+    }
+
+	printf("Local node CM contact list \"%s\"\n", node_cm_contact_list);
+
+	//struct context *ctx = (struct context *) calloc(1, sizeof(struct context));
+	ctx = (struct context *) calloc(1, sizeof(struct context));
+	cyctx = create_cyton_context();
+	axctx = create_axon_context();
+
+	ctx->cyctx = cyctx;
+	ctx->axctx = axctx;
+
+	boot_out_format = CMregister_format(cm, out_format_list);
+	CMregister_handler(boot_out_format, update_node, cyctx);	
+	
+	/*
+	actuate_format = CMregister_format(cm, actuate_format_list);
+	CMregister_handler(actuate_format, actuate_substreams_network, NULL);*/
+	
+	live_info_format = CMregister_format(cm, live_info_format_list);
+	CMregister_handler(live_info_format, update_coord_node, axctx);
+
+	node_info_format = CMregister_format(cm, node_info_format_list);
+	CMregister_handler(node_info_format, msg_node_control_comps, axctx);
+	
+	control_info_format = CMregister_format(cm, control_format_list);
+	CMregister_handler(control_info_format, update_node_control_comps, cyctx);
+
+	node_deploy_format = CMregister_format(cm, node_deploy_format_list);
+	CMregister_handler(node_deploy_format, deploy_funcs, axctx);
+
+	node_graph_deploy_format = CMregister_format(cm, node_graph_deploy_format_list);
+	CMregister_handler(node_graph_deploy_format, update_coord_node_graph_data, axctx);
+
+	node_monitors_deploy_format = CMregister_format(cm, node_monitors_deploy_format_list);
+	CMregister_handler(node_monitors_deploy_format, update_coord_node_monitors_data, ctx);
+
+	boot_node(argv[1], node_cm_contact_list, cm);
+
+	/*
+	pthread_t thrMonitoring;
+	int rcMonitoring = pthread_create(&thrMonitoring, NULL, base_mon, cyctx);	
+	if (rcMonitoring) {
+		printf("ERROR; Query thread return code from pthread_create() is %d\n", rcMonitoring);
+        exit(-1);
+	}*/
+
+	pthread_t thrMonitors;
+	int rcMonitors = pthread_create(&thrMonitors, NULL, boot_monitors, ctx);	
+	if (rcMonitors) {
+		printf("ERROR; Query thread return code from pthread_create() is %d\n", rcMonitors);
+        exit(-1);
+	}
+
+	/*
+	pthread_t thrQuery;
+	int rcQuery = pthread_create(&thrQuery, NULL, deploy_base_query, ctx);	
+	if (rcQuery) {
+		printf("ERROR; Query thread return code from pthread_create() is %d\n", rcQuery);
+		exit(-1);
+	}*/
+
+	pthread_t thrEntropy;
+	int rcEntropy = pthread_create(&thrEntropy, NULL, deploy_entropy_query, ctx);	
+	if (rcEntropy) {
+		printf("ERROR; Query thread return code from pthread_create() is %d\n", rcEntropy);
+		exit(-1);
+	}
+
+	CMsleep(cm, 1);
+	CMrun_network(cm);
+	return 0;
+}

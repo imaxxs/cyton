@@ -1,0 +1,274 @@
+#include "planner.h"
+
+query_ctx *qctx;
+int total_deploy_aggregators = 0;
+int total_deploy_nodes = 0;
+
+static FMField func_field_list[] = 
+{
+	{"func_name", "string", sizeof(char*), FMOffset(func_rec_ptr, func_name)},
+	{"in_format", "string", sizeof(char*), FMOffset(func_rec_ptr, in_format)},
+	{"out_format", "string", sizeof(char*), FMOffset(func_rec_ptr, out_format)},
+	{"flevel_start_point", "integer", sizeof(int), FMOffset(func_rec_ptr, flevel_start_point)},
+	{"flevel_end_point", "integer", sizeof(int), FMOffset(func_rec_ptr, flevel_end_point)},
+	{"func_type", "integer", sizeof(int), FMOffset(func_rec_ptr, func_type)},
+	{"func_order", "integer", sizeof(int), FMOffset(func_rec_ptr, func_order)},
+	{"func_level", "integer", sizeof(int), FMOffset(func_rec_ptr, func_level)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMField node_deploy_field_list[] = 
+{
+	{"node_contact_list", "string", sizeof(char*), FMOffset(node_deploy_ptr, node_contact_list)},
+	{"node_coord_contact_list", "string", sizeof(char*), FMOffset(node_deploy_ptr, node_coord_contact_list)},
+	{"node_type", "integer", sizeof(int), FMOffset(node_deploy_ptr, node_type)},
+	{"query_id", "integer", sizeof(int), FMOffset(node_deploy_ptr, query_id)},
+	{"graph_id", "integer", sizeof(int), FMOffset(node_deploy_ptr, graph_id)},
+	{"num_recs", "integer", sizeof(int), FMOffset(node_deploy_ptr, num_recs)},
+	{"func_recs", "func_recs[num_recs]", sizeof(struct func_rec), FMOffset(node_deploy_ptr, func_recs)},
+	{NULL, NULL, 0, 0}
+};
+
+static FMStructDescRec node_deploy_format_list[] =
+{
+    {"node_deploy_data", node_deploy_field_list, sizeof(node_deploy), NULL},
+    {"func_recs", func_field_list, sizeof(func_rec), NULL},
+    {NULL, NULL}
+};
+
+void *check_query_deployed(void *arg) {
+	do {
+		sleep(30);
+		if(check_coord_is_query_graph_deployed(((struct query_ctx *)arg)->axctx, ((struct query_ctx *)arg)->qid, 
+			((struct query_ctx *)arg)->graph_id, total_deploy_aggregators, total_deploy_nodes)) {
+			printf("QUERY GRAPH : %d IS DEPLOYED ON NUM OF AGGREGATORS : %d and NUM OF NODES : %d \n", ((struct query_ctx *)arg)->qid, 
+			total_deploy_aggregators, total_deploy_nodes);
+			printf("STARTING CONNECTING QUERY GRAPH ENDPOINTS TO AGGREGATORS GRAPH ENDPOINTS \n");
+			connect_nodes_aggregator_funcs_endpoints_for_query(((struct query_ctx *)arg)->cm, ((struct query_ctx *)arg)->axctx, 
+			((struct query_ctx *)arg)->coord_contact_list, ((struct query_ctx *)arg)->qid);
+			printf("STARTING CONNECTING MONITOR ENDPOINTS TO QUERY GRAPH ENDPOINTS \n");
+			connect_monitors_nodes_funcs_endpoints_for_query(((struct query_ctx *)arg)->cm, ((struct query_ctx *)arg)->axctx, 
+			((struct query_ctx *)arg)->coord_contact_list, ((struct query_ctx *)arg)->qid, ((struct query_ctx *)arg)->mon_attrs);
+			break;
+		}
+		sleep(2);
+	} while(1);
+	pthread_exit(NULL);
+}
+
+void create_coord_aggregator_streams_network(CManager cm, struct axon *axctx, char *coord_contact_list, int qid, int graph_id, int num_recs, 
+struct func_rec *func_recs) {
+	int stone_id = -1;
+	int stone_count = -1;
+	struct split_context *split_ctx = (struct split_context *) calloc(1, sizeof(struct split_context));
+	init_split_context(1, split_ctx);
+	struct stone_context *stone_ctx = (struct stone_context *) calloc(2, sizeof(struct stone_context));
+	init_stone_context(2, stone_ctx);
+	struct func_context *func_ctx = (struct func_context *)calloc(2, sizeof(struct func_context));
+	init_func_context(2, func_ctx);
+	for(int j = 0; j < num_recs; j++) {
+		if(func_recs[j].func_level == 2) {
+			int local_stone = realize_vertex(cm, qid, (func_recs[j]), stone_ctx, func_ctx, split_ctx); 
+			stone_count += 1;
+			if(stone_count > 0) {
+				realize_edge(cm, qid, split_ctx, stone_id);
+				clean_split_context(1, split_ctx);
+			}
+			stone_id = local_stone;
+		}
+	}
+	register_aggregator_endpoints_for_query(cm, axctx, coord_contact_list, qid, num_recs, stone_ctx, func_ctx);
+	free(split_ctx);
+	free(stone_ctx);
+	free(func_ctx);
+}
+
+void populate_node_deploy_rec(int query_id, struct node_deploy *per_node_deploy_data, struct func_list *func_list, char *node_contact_list, 
+char *node_coord_contact_list) {
+	per_node_deploy_data->node_contact_list = strdup(node_contact_list);
+	per_node_deploy_data->node_coord_contact_list = strdup(node_coord_contact_list);
+	per_node_deploy_data->query_id = query_id;
+	per_node_deploy_data->graph_id = query_id;
+	per_node_deploy_data->node_type = 0;
+	per_node_deploy_data->num_recs = func_list->num_recs;
+	per_node_deploy_data->func_recs = (struct func_rec *) calloc(func_list->num_recs, sizeof(struct func_rec));
+	for(int i = 0; i < func_list->num_recs; i++) {
+		per_node_deploy_data->func_recs[i].func_name = strdup(func_list->func_recs[i].func_name);
+		per_node_deploy_data->func_recs[i].in_format = strdup(func_list->func_recs[i].in_format);
+		per_node_deploy_data->func_recs[i].out_format = strdup(func_list->func_recs[i].out_format);
+		per_node_deploy_data->func_recs[i].flevel_start_point = func_list->func_recs[i].flevel_start_point;
+		per_node_deploy_data->func_recs[i].flevel_end_point = func_list->func_recs[i].flevel_end_point;
+		per_node_deploy_data->func_recs[i].func_type = func_list->func_recs[i].func_type;
+		per_node_deploy_data->func_recs[i].func_order = func_list->func_recs[i].func_order;
+		per_node_deploy_data->func_recs[i].func_level = func_list->func_recs[i].func_level;
+	}
+}
+
+void deploy_funcs_to_nodes(struct query_ctx *qctx, int num_deploy_nodes, char **deploy_nodes_contact_list, char *node_coord_contact_list) {
+	attr_list node_cm_attr_list =  NULL;
+	for(int i = 0; i < num_deploy_nodes; i++) {
+		if(strcmp(node_coord_contact_list, deploy_nodes_contact_list[i]) != 0) {
+			node_cm_attr_list = attr_list_from_string(deploy_nodes_contact_list[i]);
+			CMConnection conn = CMget_conn(qctx->cm, node_cm_attr_list);
+			if (conn == NULL) {
+				printf("No connection, attr list was :");
+				dump_attr_list(node_cm_attr_list);
+				printf("\n");
+				exit(1);
+			}
+			per_node_deploy_format = CMregister_format(qctx->cm, node_deploy_format_list);
+		
+			node_deploy node_deploy_data;
+			populate_node_deploy_rec(qctx->graph_id, &node_deploy_data, qctx->func_list, deploy_nodes_contact_list[i], node_coord_contact_list);
+			CMwrite(conn, per_node_deploy_format, &node_deploy_data);
+		} else {
+			// deploy funcs for on node assuming coordinator role
+			// TO BE DONE..
+		}
+	}
+}
+
+void populate_aggr_node_deploy_rec(int query_id, struct node_deploy *node_aggr_deploy_data, struct func_list *func_list, char *node_aggr_contact_list, 
+char *node_coord_contact_list) {
+	node_aggr_deploy_data->node_contact_list = strdup(node_aggr_contact_list);
+	node_aggr_deploy_data->node_coord_contact_list = strdup(node_coord_contact_list);
+	node_aggr_deploy_data->query_id = query_id;
+	node_aggr_deploy_data->graph_id = query_id;
+	node_aggr_deploy_data->node_type = 1;
+	node_aggr_deploy_data->num_recs = func_list->num_recs;
+	node_aggr_deploy_data->func_recs = (struct func_rec *) calloc(func_list->num_recs, sizeof(struct func_rec));
+	for(int i = 0; i < func_list->num_recs; i++) {
+		node_aggr_deploy_data->func_recs[i].func_name = strdup(func_list->func_recs[i].func_name);
+		node_aggr_deploy_data->func_recs[i].in_format = strdup(func_list->func_recs[i].in_format);
+		node_aggr_deploy_data->func_recs[i].out_format = strdup(func_list->func_recs[i].out_format);
+		node_aggr_deploy_data->func_recs[i].flevel_start_point = func_list->func_recs[i].flevel_start_point;
+		node_aggr_deploy_data->func_recs[i].flevel_end_point = func_list->func_recs[i].flevel_end_point;
+		node_aggr_deploy_data->func_recs[i].func_type = func_list->func_recs[i].func_type;
+		node_aggr_deploy_data->func_recs[i].func_order = func_list->func_recs[i].func_order;
+		node_aggr_deploy_data->func_recs[i].func_level = func_list->func_recs[i].func_level;
+	}
+}
+
+void deploy_funcs_to_aggregators(struct query_ctx *qctx, int num_deploy_aggregators, char **node_aggregators_contact_list, 
+char *node_coord_contact_list) {
+	attr_list node_cm_attr_list = attr_list_from_string(node_aggregators_contact_list[num_deploy_aggregators - 1]);
+
+	CMConnection conn = CMget_conn(qctx->cm, node_cm_attr_list);
+	if (conn == NULL) {
+		printf("No connection, attr list was :");
+		dump_attr_list(node_cm_attr_list);
+		printf("\n");
+		exit(1);
+	}
+	planner_node_deploy_format = CMregister_format(qctx->cm, node_deploy_format_list);
+	
+	node_deploy node_deploy_data;
+	populate_aggr_node_deploy_rec(qctx->graph_id, &node_deploy_data, qctx->func_list, node_aggregators_contact_list[0], node_coord_contact_list);
+	CMwrite(conn, planner_node_deploy_format, &node_deploy_data);
+}
+
+void create_streams_network(struct control_comp *ctrl_comp, struct query_ctx *qctx, char *coord_contact_list) {
+	struct deploy_nodes_context *deploy_ctx = (struct deploy_nodes_context *) calloc(1, sizeof(struct deploy_nodes_context));
+	get_deployable_aggregators_from_coord(qctx->axctx, coord_contact_list, deploy_ctx);
+	printf("Number of deployable aggregators for monitoring graph id : %d : %d \n", qctx->qid, deploy_ctx->num_deploy_nodes);
+	printf("Deployable aggregators for monitoring graph id : %d : %s \n", qctx->qid, deploy_ctx->deploy_nodes_contact_list[0]);
+	register_aggregators_for_query(qctx->axctx, qctx->qid, qctx->coord_contact_list, deploy_ctx->num_deploy_nodes, 
+	deploy_ctx->deploy_nodes_contact_list, 0, 0);
+	if(check_is_aggregator_coord(qctx->axctx, deploy_ctx->num_deploy_nodes, deploy_ctx->deploy_nodes_contact_list, coord_contact_list)) {
+		if(!check_coord_is_aggregator_graph_deployed_for_query(qctx->axctx, deploy_ctx->num_deploy_nodes, 
+			deploy_ctx->deploy_nodes_contact_list[deploy_ctx->num_deploy_nodes - 1], qctx->qid, qctx->graph_id)) {
+			create_coord_aggregator_streams_network(qctx->cm, qctx->axctx, qctx->coord_contact_list, qctx->qid, qctx->graph_id, 
+			qctx->func_list->num_recs, qctx->func_list->func_recs);
+		}
+		register_aggregator_graph_deployed_for_query(qctx->cm, qctx->axctx, deploy_ctx->num_deploy_nodes,
+		deploy_ctx->deploy_nodes_contact_list[deploy_ctx->num_deploy_nodes - 1], qctx->qid);
+	} else {
+		// Should send qctx->func_recs after checking if its type i.e. 2
+		if(!check_coord_is_aggregator_graph_deployed_for_query(qctx->axctx, deploy_ctx->num_deploy_nodes,
+			deploy_ctx->deploy_nodes_contact_list[deploy_ctx->num_deploy_nodes - 1], 
+			qctx->qid, qctx->graph_id)) {
+			deploy_funcs_to_aggregators(qctx, deploy_ctx->num_deploy_nodes, deploy_ctx->deploy_nodes_contact_list, 
+			coord_contact_list);
+		}
+		register_aggregator_graph_deployed_for_query(qctx->cm, qctx->axctx, deploy_ctx->num_deploy_nodes, 
+		deploy_ctx->deploy_nodes_contact_list[deploy_ctx->num_deploy_nodes - 1], qctx->qid);
+	}
+	total_deploy_aggregators = deploy_ctx->num_deploy_nodes;
+	clean_deploy_nodes_context(1, deploy_ctx);
+	get_deployable_nodes_from_coord(qctx->axctx, coord_contact_list, deploy_ctx);
+	printf("Number of deployable nodes for monitoring graph id : %d : %d \n", qctx->qid, deploy_ctx->num_deploy_nodes);
+	register_nodes_for_query(qctx->axctx, qctx->qid, coord_contact_list, deploy_ctx->num_deploy_nodes, 
+	deploy_ctx->deploy_nodes_contact_list, 0, 0);
+	// Should send qctx->func_recs after checking if its type i.e. 1
+	int is_nodes_graph_deployed_for_query = 0;
+	for(int k = 0; k < deploy_ctx->num_deploy_nodes; k ++) {
+		printf("Deployable nodes for monitoring graph id : %d : %s \n", qctx->qid, deploy_ctx->deploy_nodes_contact_list[k]);
+		is_nodes_graph_deployed_for_query =+ check_coord_is_nodes_graph_deployed_for_query(qctx->axctx, deploy_ctx->num_deploy_nodes, 
+		deploy_ctx->deploy_nodes_contact_list[k], qctx->qid, qctx->graph_id);
+	}
+
+	if(is_nodes_graph_deployed_for_query != deploy_ctx->num_deploy_nodes) {
+		// Check nodes which do not have query deploy and deploy only to those
+		deploy_funcs_to_nodes(qctx, deploy_ctx->num_deploy_nodes, deploy_ctx->deploy_nodes_contact_list, coord_contact_list);
+	}
+
+	total_deploy_nodes = deploy_ctx->num_deploy_nodes;
+	free(deploy_ctx);
+	pthread_t thrQueryDeployed;
+	int rcQueryDeployed = pthread_create(&thrQueryDeployed, NULL, check_query_deployed, qctx);	
+	if (rcQueryDeployed) {
+		printf("ERROR; Query thread return code from pthread_create() is %d\n", rcQueryDeployed);
+		exit(-1);
+	}
+}
+
+void *boot_processing_graph(void *arg) {
+	do {
+		if(check_is_coord_control_comps_assigned(((struct query_ctx *)arg)->axctx, ((struct query_ctx *)arg)->coord_contact_list)) {
+			struct control_comp *ctrl_comp = get_coord_control_comps(((struct query_ctx*)arg)->axctx ,((struct query_ctx *)arg)->coord_contact_list);
+			printf("Start creating streams network for monitoring graph .. \n");
+			create_streams_network(ctrl_comp, ((struct query_ctx *)arg), ((struct query_ctx *)arg)->coord_contact_list);
+			break;
+		}
+		sleep(2);
+	} while(1);
+	pthread_exit(NULL);
+}
+
+void deploy_monitoring_graph(CManager cm, struct axon *axctx, char *src_contact_list, char *coord_contact_list, int qid, int qtype, 
+int graph_id, int num_attrs, char *mon_attrs, int num_funcs, struct func_rec *func_recs) {
+	//graph id not required to be removed
+	register_queries_to_axon(cm, axctx, src_contact_list, coord_contact_list, qid, qtype, 0, 0, graph_id, num_funcs, func_recs);
+	qctx = (struct query_ctx *) calloc(1, sizeof(struct query_ctx));
+	qctx->qid = qid;
+	qctx->qtype = qtype;
+	qctx->graph_id = graph_id;
+	qctx->num_attrs = num_attrs;
+	qctx->mon_attrs = strdup(mon_attrs);
+	qctx->src_contact_list = strdup(src_contact_list);
+	qctx->coord_contact_list = strdup(coord_contact_list);
+	qctx->axctx = axctx;
+	qctx->cm = cm;
+	qctx->func_list = (struct func_list *) calloc(1, sizeof(func_list));
+	qctx->func_list->num_recs = num_funcs;
+	qctx->func_list->func_recs = (struct func_rec *) calloc(num_funcs, sizeof(struct func_rec));
+	for(int j = 0; j < num_funcs; j++) {
+		qctx->func_list->func_recs[j].func_name = strdup(func_recs[j].func_name);
+		qctx->func_list->func_recs[j].in_format = strdup(func_recs[j].in_format);
+		qctx->func_list->func_recs[j].out_format = strdup(func_recs[j].out_format);
+		qctx->func_list->func_recs[j].flevel_start_point = func_recs[j].flevel_start_point;
+		qctx->func_list->func_recs[j].flevel_end_point = func_recs[j].flevel_end_point;
+		qctx->func_list->func_recs[j].func_type = func_recs[j].func_type;
+		qctx->func_list->func_recs[j].func_order = func_recs[j].func_order;
+		qctx->func_list->func_recs[j].func_level = func_recs[j].func_level;
+	}
+	// api to take query_context and create a thread internally inside control layer
+	if(check_is_node_coord(axctx, coord_contact_list, src_contact_list)) {
+		pthread_t thrQuery;
+		int rcQuery = pthread_create(&thrQuery, NULL, boot_processing_graph, qctx);	
+		if (rcQuery) {
+			printf("ERROR; Query boot thread return code from pthread_create() is %d\n", rcQuery);
+			exit(-1);
+		}
+	}
+}

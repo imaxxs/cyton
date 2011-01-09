@@ -1,0 +1,149 @@
+K 25
+svn:wc:ra_dav:version-url
+V 39
+/kaos/!svn/ver/7464/cyton/trunk/libltdl
+END
+slist.c
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/slist.c
+END
+ltdl.c
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/ltdl.c
+END
+configure
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/configure
+END
+Makefile.in
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/Makefile.in
+END
+argz.c
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/argz.c
+END
+ltdl.h
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/ltdl.h
+END
+config.log
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/kaos/!svn/ver/7464/cyton/trunk/libltdl/config.log
+END
+config.status
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/kaos/!svn/ver/7464/cyton/trunk/libltdl/config.status
+END
+argz_.h
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/argz_.h
+END
+stamp-h1
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/stamp-h1
+END
+config.h
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/kaos/!svn/ver/7464/cyton/trunk/libltdl/config.h
+END
+README
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/README
+END
+config-h.in
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/config-h.in
+END
+lt__strl.c
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/lt__strl.c
+END
+configure.ac
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/configure.ac
+END
+libtool
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/kaos/!svn/ver/7464/cyton/trunk/libltdl/libtool
+END
+lt__dirent.c
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/lt__dirent.c
+END
+lt_dlloader.c
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/lt_dlloader.c
+END
+Makefile.am
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/Makefile.am
+END
+lt__alloc.c
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/lt__alloc.c
+END
+lt_error.c
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/lt_error.c
+END
+aclocal.m4
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/aclocal.m4
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/kaos/!svn/ver/7464/cyton/trunk/libltdl/Makefile
+END
+COPYING.LIB
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/kaos/!svn/ver/7320/cyton/trunk/libltdl/COPYING.LIB
+END

@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 37
+/kaos/!svn/ver/7553/cyton/trunk/agent
+END
+Makefile.in
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/kaos/!svn/ver/7464/cyton/trunk/agent/Makefile.in
+END
+nodeagent.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/kaos/!svn/ver/7553/cyton/trunk/agent/nodeagent.cpp
+END
+Makefile.am
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/kaos/!svn/ver/7552/cyton/trunk/agent/Makefile.am
+END
+nodeagent.h
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/kaos/!svn/ver/7470/cyton/trunk/agent/nodeagent.h
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/kaos/!svn/ver/7464/cyton/trunk/agent/Makefile
+END

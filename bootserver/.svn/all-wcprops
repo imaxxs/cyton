@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 42
+/kaos/!svn/ver/7466/cyton/trunk/bootserver
+END
+bootserver.h
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/kaos/!svn/ver/7464/cyton/trunk/bootserver/bootserver.h
+END
+Makefile.in
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/kaos/!svn/ver/7466/cyton/trunk/bootserver/Makefile.in
+END
+Makefile.am
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/kaos/!svn/ver/7466/cyton/trunk/bootserver/Makefile.am
+END
+bootserver.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/kaos/!svn/ver/7464/cyton/trunk/bootserver/bootserver.cpp
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/kaos/!svn/ver/7464/cyton/trunk/bootserver/Makefile
+END

@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 39
+/kaos/!svn/ver/7469/cyton/trunk/planner
+END
+planner.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/kaos/!svn/ver/7469/cyton/trunk/planner/planner.cpp
+END
+Makefile.in
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/kaos/!svn/ver/7464/cyton/trunk/planner/Makefile.in
+END
+planner.h
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/kaos/!svn/ver/7464/cyton/trunk/planner/planner.h
+END
+Makefile.am
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/kaos/!svn/ver/7464/cyton/trunk/planner/Makefile.am
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/kaos/!svn/ver/7464/cyton/trunk/planner/Makefile
+END

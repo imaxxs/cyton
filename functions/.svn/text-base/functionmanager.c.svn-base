@@ -1,0 +1,529 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <math.h>
+#include <sys/time.h>
+#include "evpath.h"
+#include "revpath.h"
+#include "gen_thread.h"
+
+typedef struct sensor_rec {
+	double sampling_window;
+	int sampling_rate;
+	double timestamp;
+	char *attr_name;
+	float rec_val;
+} sensor_rec, *sensor_rec_ptr;
+
+typedef struct recs {
+	char *attr_name;
+	int num_recs;
+	float *rec_val;
+} recs, *recs_ptr;
+
+typedef struct recs_range {
+	char *attr_name;
+	float key_srng;
+	float key_erng;
+	int num_recs;
+	float *rec_val;
+} recs_range, *recs_range_ptr;
+
+typedef struct recs_range_level {
+	char *attr_name;
+	float key_srng;
+	float key_erng;
+	int range_level;
+	int num_recs;
+	float *rec_val;
+} recs_range_level, *recs_range_level_ptr;
+
+typedef struct recs_range_level_list {
+	int num_range_recs;
+	struct recs_range_level *recs_range;
+} recs_range_level_list, *recs_range_level_list_ptr;
+
+typedef struct rec_stats {
+	char *attr_name;
+	float key_srng;
+	float key_erng;
+	int rec_int_cnt;
+	float rec_float_cnt;
+} rec_stats, *rec_stats_ptr;
+
+typedef struct recs_stats_range_list {
+	int num_stats_recs;
+	struct rec_stats *recs_stats;
+} recs_stats_range_list, *recs_stats_range_list_ptr;
+
+typedef struct rec_stats_threshold {
+	char *attr_name;
+	float key_srng;
+	float key_erng;
+	int threshold_val;
+	int rec_int_cnt;
+	float rec_float_cnt;
+} rec_stats_threshold, *rec_stats_threshold_ptr;
+
+typedef struct recs_stats_threshold_range_list {
+	int num_stats_recs;
+	struct rec_stats_threshold *recs_stats_threshold;
+} recs_stats_threshold_range_list, *recs_stats_threshold_range_list_ptr;
+
+typedef struct recs_entropy_stats {
+	char *attr_name;
+	int total_recs;
+	float recs_entropy;
+} recs_entropy_stats, *recs_entropy_stats_ptr;
+
+typedef struct recs_entropy_stats_threshold {
+	char *attr_name;
+	int total_recs;
+	float recs_entropy;
+	float recs_entropy_threshold;
+} recs_entropy_stats_threshold, *recs_entropy_stats_threshold_ptr;
+
+struct recs *precs;
+struct recs_range *precs_range;
+struct recs_range_level *precs_range_level;
+struct recs_range_level_list *precs_range_level_list;
+struct recs_stats_range_list *precs_stats_range_list;
+struct recs_stats_threshold_range_list *precs_stats_threshold_range_list;
+
+static time_t start; static time_t now; static double elapsed; static int event_buffer_size; static int dummy_event_buffer_size;
+static double sampling_window; static int sampling_rate; static int marker_event = 1;
+
+/*
+int entropy_threshold(stats_rec_ptr input) {
+	printf("Inside the libfunctions.la entropy_threshold function....\n");
+	float cpu_rec_start = ((stats_rec_ptr)input)->key_srng;
+	float cpu_rec_end = ((stats_rec_ptr)input)->key_erng;
+	int rec_cnt = ((stats_rec_ptr)input)->rec_int_cnt;
+
+	printf("Entropy threshold function record count : %d \n", rec_cnt);
+	if(((stats_rec_ptr)input)->rec_int_cnt > 20) {
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
+int range_threshold(stats_recs_list_ptr input) {
+	printf("Inside the libfunctions.la range_threshold function .... \n");
+
+	int num_stats_recs = ((stats_recs_list_ptr)input)->num_stats_recs;
+
+	int i;
+	for(i = 0; i < num_stats_recs; i++) {
+		if(((stats_recs_list_ptr)input)->stats_recs[i].rec_int_cnt > 20) {
+			return 0;
+		} else {
+			return -1;
+		}
+	}
+}
+
+int entropy(stats_recs_list_ptr input, stats_rec_ptr output) {
+	printf("Inside the libfunctions.la entropy function .... \n");
+
+	int num_stats_recs = input->num_stats_recs;
+
+	struct stats_rec *stats_rec = (struct stats_rec *) calloc (1, sizeof(struct stats_rec));
+	stats_rec->attr_name = NULL;
+	stats_rec->key_srng = -1;
+	stats_rec->key_erng = -1;
+	stats_rec->rec_int_cnt = -1;
+	stats_rec->rec_float_cnt = -1;
+	output = stats_rec;
+
+	int i;
+	for(i = 0; i < num_stats_recs; i++) {
+			output->rec_float_cnt += 0.0001;				
+	}
+	printf("Range function Record CPU Threshold Count : %d \n", output->rec_float_cnt);
+	return 1;
+}
+
+int range (range_recs_list_ptr input, stats_recs_list_ptr output) {
+	printf("Inside the libfunctions.la range function .... \n");
+
+	int num_range_recs = input->num_range_recs;
+	output->num_stats_recs = input->num_range_recs;
+	int num_stats_recs = output->num_stats_recs;
+
+	stats_list = output;
+	stats_list->num_stats_recs = num_stats_recs;
+	stats_list->stats_recs = (struct stats_rec *) calloc (num_stats_recs, sizeof(struct stats_rec));
+
+	int i;
+	for(i = 0; i < num_stats_recs; i++) {
+		stats_list->stats_recs[i].attr_name = NULL;
+		stats_list->stats_recs[i].key_srng = -1;
+		stats_list->stats_recs[i].key_erng = -1;
+		stats_list->stats_recs[i].rec_int_cnt = -1;
+		stats_list->stats_recs[i].rec_float_cnt = -1;
+	}
+
+	int j;
+	
+	for(j = 0; j < num_range_recs; j++) {
+		float start = input->range_recs[j].key_srng;
+		float end = input->range_recs[j].key_erng;
+		int num_recs = input->range_recs[j].num_recs;
+		float *rec_val = input->range_recs[j].rec_val;
+		if(num_recs != 0) {
+			int k;
+			for(k = 0; k < num_recs; k++) {
+				if(start < rec_val[k]  && rec_val[k] < end) {
+					output->stats_recs[j].rec_int_cnt += 1;				
+				}
+			}
+			output->stats_recs[j].key_srng += start;				
+			output->stats_recs[j].key_erng += end;				
+			output->stats_recs[j].attr_name = strdup(input->range_recs[j].attr_name);
+		}
+	}
+
+	int p;
+	for(p = 0; p < num_stats_recs; p++) {
+		printf("Range function threshold count for attribute : %s :  %d \n", output->stats_recs[p].attr_name, output->stats_recs[p].rec_int_cnt);
+	}
+	return 1;
+}
+*/
+
+int entropy_stats_threshold_trigger(recs_entropy_stats_threshold_ptr input) {
+	printf("Inside the libfunctions.la RECS_STATS_THRESHOLD_TRIGGER function .... \n");
+
+	printf("Recs entropy value : %d and entropy threshold value : %d ...\n", 
+	((recs_entropy_stats_threshold_ptr)input)->recs_entropy,
+	((recs_entropy_stats_threshold_ptr)input)->recs_entropy_threshold);
+
+	if(((recs_entropy_stats_threshold_ptr)input)->recs_entropy >
+		((recs_entropy_stats_threshold_ptr)input)->recs_entropy_threshold) {
+			printf("ENTROPY THRESHOLD TRIGGER ACTIVATED ..\n");
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
+int append_entropy_stats_threshold (recs_entropy_stats_ptr input, recs_entropy_stats_threshold_ptr output) {
+	printf("Inside the libfunctions.la APPEND_ENTROPY_STATS_THRESHOLD function .... \n");
+	
+	if(input->attr_name != NULL) {
+		output->attr_name = strdup(input->attr_name);
+	}
+	output->total_recs = input->total_recs;
+	output->recs_entropy = input->recs_entropy;
+	output->recs_entropy_threshold = 0.5;
+
+	printf("OUT RECORD FROM ENTROPY_STATS_THRESHOLD FUNCTION === \n");
+	printf("OUT RECORD ==> recs entropy threshold attr_name : %s ...\n", output->attr_name);
+	printf("OUT RECORD ==> recs entropy threshold total_recs : %d ...\n", output->total_recs);
+	printf("OUT RECORD ==> recs entropy threshold entropy val : %f ...\n", output->recs_entropy);
+	printf("OUT RECORD ==> recs entropy threshold entropy val threshold : %f ...\n", output->recs_entropy_threshold);
+
+	return 1;
+}
+
+int entropy_stats(recs_stats_range_list_ptr input, recs_entropy_stats_ptr output) {
+	printf("Inside the libfunctions.la ENTROPY_STATS function .... \n");
+	int num_stats = input->num_stats_recs;
+	int i; int j; int total_rec_cnt = 0;
+	float entropy_val = 0.0; float prob = 0.0;
+	char *entropy_rec_name = NULL;
+	for (i = 0; i < num_stats; i++) {
+		if(i > 0) {
+			if(entropy_rec_name != NULL && strcmp(input->recs_stats[i].attr_name, entropy_rec_name) != 0) {
+				return 0;
+			}
+		} 
+		if(input->recs_stats[i].attr_name != NULL) {
+			entropy_rec_name = strdup(input->recs_stats[i].attr_name);
+		}
+		if(input->recs_stats[i].rec_int_cnt == -1 || input->recs_stats[i].rec_int_cnt == 0) {
+			return 0;
+		}
+		total_rec_cnt = total_rec_cnt + input->recs_stats[i].rec_int_cnt;
+		if(total_rec_cnt == 0) {
+			return 0;
+		}
+	}  
+	for (j = 0; j < num_stats; j++) {
+		prob = ((input->recs_stats[i]).rec_int_cnt)/total_rec_cnt;
+		printf("ENTROPY_STATS FUNCTION PROB VALUE === %f \n", prob);
+		entropy_val = entropy_val - prob*log2(prob);
+		printf("ENTROPY_STATS FUNCTION ENTROPY VALUE === %f \n", entropy_val);
+	} 
+	output->attr_name = strdup(entropy_rec_name);
+	output->total_recs = total_rec_cnt;
+	output->recs_entropy = entropy_val;
+
+	printf("OUT RECORD FROM ENTROPY_STATS FUNCTION === \n");
+	printf("OUT RECORD ==> recs entropy attr_name : %s ...\n", output->attr_name);
+	printf("OUT RECORD ==> recs entropy total_rec_cnt : %d ...\n", output->total_recs);
+	printf("OUT RECORD ==> recs entropy entropy val : %f ...\n", output->recs_entropy);
+	return 1;
+}
+
+int recs_stats_threshold_trigger(recs_stats_threshold_range_list_ptr input) {
+	printf("Inside the libfunctions.la RECS_STATS_THRESHOLD_TRIGGER function .... \n");
+
+	int num_stats_recs = ((recs_stats_threshold_range_list_ptr)input)->num_stats_recs;
+	int i;
+	for(i = 0; i < num_stats_recs; i++) {
+		printf("Recs count : %d and threshold value : %d ...\n", 
+		((recs_stats_threshold_range_list_ptr)input)->recs_stats_threshold[i].rec_int_cnt,
+		((recs_stats_threshold_range_list_ptr)input)->recs_stats_threshold[i].threshold_val);
+
+		if(((recs_stats_threshold_range_list_ptr)input)->recs_stats_threshold[i].rec_int_cnt >
+			((recs_stats_threshold_range_list_ptr)input)->recs_stats_threshold[i].threshold_val) {
+				printf("THRESHOLD_TRIGGER ACTIVATED as recs count : %d crossed threshold value : %d ...\n", 
+				((recs_stats_threshold_range_list_ptr)input)->recs_stats_threshold[i].rec_int_cnt,
+				((recs_stats_threshold_range_list_ptr)input)->recs_stats_threshold[i].threshold_val);
+			return 0;
+		} else {
+			return -1;
+		}
+	}
+}
+
+int append_recs_stats_threshold (recs_stats_range_list_ptr input, recs_stats_threshold_range_list_ptr output) {
+	printf("Inside the libfunctions.la APPEND_RECS_STATS_THRESHOLD function .... \n");
+
+	int num_stats_recs = input->num_stats_recs;
+	output->num_stats_recs = input->num_stats_recs;
+
+	precs_stats_threshold_range_list = output;
+	precs_stats_threshold_range_list->recs_stats_threshold = (struct rec_stats_threshold *) calloc (num_stats_recs, sizeof(struct rec_stats_threshold));
+
+	int i;
+	for(i = 0; i < num_stats_recs; i++) {
+		precs_stats_threshold_range_list->recs_stats_threshold[i].attr_name = NULL;
+		precs_stats_threshold_range_list->recs_stats_threshold[i].key_srng = -1;
+		precs_stats_threshold_range_list->recs_stats_threshold[i].key_erng = -1;
+		precs_stats_threshold_range_list->recs_stats_threshold[i].rec_int_cnt = -1;
+		precs_stats_threshold_range_list->recs_stats_threshold[i].rec_float_cnt = -1;
+		precs_stats_threshold_range_list->recs_stats_threshold[i].threshold_val = -1;
+	}
+
+	int j;
+	for(j = 0; j < num_stats_recs; j++) {
+		if(input->recs_stats[j].attr_name != NULL) {
+			precs_stats_threshold_range_list->recs_stats_threshold[j].attr_name = strdup(input->recs_stats[j].attr_name);
+		}
+		precs_stats_threshold_range_list->recs_stats_threshold[j].key_srng = input->recs_stats[j].key_srng;				
+		precs_stats_threshold_range_list->recs_stats_threshold[j].key_erng = input->recs_stats[j].key_erng;				
+		precs_stats_threshold_range_list->recs_stats_threshold[j].threshold_val = 20;				
+		precs_stats_threshold_range_list->recs_stats_threshold[j].rec_int_cnt = input->recs_stats[j].rec_int_cnt;				
+		precs_stats_threshold_range_list->recs_stats_threshold[j].rec_float_cnt = input->recs_stats[j].rec_float_cnt;				
+	}
+	printf("OUT RECORD FROM APPEND_RECS_STATS_THRESHOLD FUNCTION === \n");
+	printf("OUT RECORD ==> num_stats_recs : %d ...\n", output->num_stats_recs);
+	printf("OUT RECORD ==> recs stats threshold level 1 attr_name : %s ...\n", output->recs_stats_threshold[0].attr_name);
+	printf("OUT RECORD ==> recs stats threshold level 1 key_srng : %f ...\n", output->recs_stats_threshold[0].key_srng);
+	printf("OUT RECORD ==> recs stats threshold level 1 key_erng : %f ...\n", output->recs_stats_threshold[0].key_erng);
+	printf("OUT RECORD ==> recs stats threshold level 1 threshold val : %d ...\n", output->recs_stats_threshold[0].threshold_val);
+	printf("OUT RECORD ==> recs stats threshold level 1 rec_int_cnt : %d ...\n", output->recs_stats_threshold[0].rec_int_cnt);
+	printf("OUT RECORD ==> recs stats threshold level 1 rec_float_cnt : %f ...\n", output->recs_stats_threshold[0].rec_float_cnt);
+	return 1;
+}
+
+int recs_range_stats_list (recs_range_level_list_ptr input, recs_stats_range_list_ptr output) {
+	printf("Inside the libfunctions.la RECS_RANGE_STATS_LIST function .... \n");
+
+	int num_range_recs = input->num_range_recs;
+	output->num_stats_recs = input->num_range_recs;
+	int num_stats_recs = output->num_stats_recs;
+
+	precs_stats_range_list = output;
+	precs_stats_range_list->recs_stats = (struct rec_stats *) calloc (num_stats_recs, sizeof(struct rec_stats));
+
+	int i;
+	for(i = 0; i < num_stats_recs; i++) {
+		precs_stats_range_list->recs_stats[i].attr_name = NULL;
+		precs_stats_range_list->recs_stats[i].key_srng = -1;
+		precs_stats_range_list->recs_stats[i].key_erng = -1;
+		precs_stats_range_list->recs_stats[i].rec_int_cnt = -1;
+		precs_stats_range_list->recs_stats[i].rec_float_cnt = -1;
+	}
+
+	int j;
+	for(j = 0; j < num_range_recs; j++) {
+		float start = input->recs_range[j].key_srng;
+		float end = input->recs_range[j].key_erng;
+		int num_recs = input->recs_range[j].num_recs;
+		if(num_recs != 0) {
+			int k;
+			for(k = 0; k < num_recs; k++) {
+				if(start < input->recs_range[j].rec_val[k]  && input->recs_range[j].rec_val[k] < end) {
+					precs_stats_range_list->recs_stats[j].rec_int_cnt += 1;				
+				}
+			}
+			precs_stats_range_list->recs_stats[j].key_srng += start;				
+			precs_stats_range_list->recs_stats[j].key_erng += end;				
+			precs_stats_range_list->recs_stats[j].attr_name = strdup(input->recs_range[j].attr_name);
+			precs_stats_range_list->recs_stats[j].rec_float_cnt = -1;
+		} else {
+			return 0;
+		}
+	}
+	printf("OUT RECORD FROM RECS_RANGE_STATS_LIST FUNCTION === \n");
+	printf("OUT RECORD ==> num_stats_recs : %d ...\n", output->num_stats_recs);
+	printf("OUT RECORD ==> recs stats level 1 attr_name : %s ...\n", output->recs_stats[0].attr_name);
+	printf("OUT RECORD ==> recs stats level 1 key_srng : %f ...\n", output->recs_stats[0].key_srng);
+	printf("OUT RECORD ==> recs stats level 1 key_erng : %f ...\n", output->recs_stats[0].key_erng);
+	printf("OUT RECORD ==> recs stats level 1 rec_int_cnt : %d ...\n", output->recs_stats[0].rec_int_cnt);
+	printf("OUT RECORD ==> recs stats level 1 rec_float_cnt : %f ...\n", output->recs_stats[0].rec_float_cnt);
+	return 1;
+}
+
+int recs_range_levels(recs_range_level_ptr input, recs_range_level_list_ptr output) {
+	printf("Inside the libfunctions.la RECS_RANGE_LEVELS function .... \n");
+
+	float start = input->key_srng;
+	float end = input->key_erng;
+	int range_level = input->range_level;
+	float step = (end - start)/(range_level);
+	int num_recs = input->num_recs;
+
+	precs_range_level_list = output;
+	output->num_range_recs = range_level;
+	precs_range_level_list->recs_range = (struct recs_range_level *) calloc (range_level, sizeof(struct recs_range_level));
+
+	int i; int j; int k; int l;
+	for(i = 0; i < range_level; i++) {
+		int num_per_range_recs = 0;
+		for(j = 0; j < num_recs; j++) {
+			if(start < input->rec_val[j] && input->rec_val[j] < (start+step)) {
+				num_per_range_recs += 1;				
+			}
+		}
+		precs_range_level_list->recs_range[i].num_recs = num_per_range_recs;
+		precs_range_level_list->recs_range[i].rec_val = (float *)calloc(num_per_range_recs, sizeof(float*));
+		for(k = 0; k < num_recs; k++) {
+			if(start < input->rec_val[k] && input->rec_val[k] < (start + step)) {
+				for(l = 0; l < num_per_range_recs; l++) {
+					if(output->recs_range[i].rec_val[l] == -1) {
+						precs_range_level_list->recs_range[i].rec_val[l] = input->rec_val[k];
+						break;
+					}
+				}
+			}
+		}
+		precs_range_level_list->recs_range[i].key_srng = start;				
+		precs_range_level_list->recs_range[i].key_erng = start + step;				
+		precs_range_level_list->recs_range[i].range_level = range_level;				
+		precs_range_level_list->recs_range[i].attr_name = strdup(input->attr_name);
+		start = start + step;
+		if(start == end) break;
+	}
+	printf("OUT RECORD FROM RECS RANGE LEVEL FUNCTION === \n");
+	printf("OUT RECORD ==> num_range_recs : %d ...\n", output->num_range_recs);
+	printf("OUT RECORD ==> recs range level 1 attr_name : %s ...\n", output->recs_range[0].attr_name);
+	printf("OUT RECORD ==> recs range level 1 key_srng : %f ...\n", output->recs_range[0].key_srng);
+	printf("OUT RECORD ==> recs range level 1 key_erng : %f ...\n", output->recs_range[0].key_erng);
+	printf("OUT RECORD ==> recs range_level 1 range_level : %d ...\n", output->recs_range[0].range_level);
+	printf("OUT RECORD ==> recs range level 1 num_recs : %d ...\n", output->recs_range[0].num_recs);
+	printf("OUT RECORD ==> recs range level 1 at index : %d rec_val : %f ...\n", 10, output->recs_range[0].rec_val[10]);
+	return 1;
+}
+
+int append_level(recs_range_ptr input, recs_range_level_ptr output) {
+	printf("Inside the libfunctions.la APPEND_LEVEL function .... \n");
+
+	output->attr_name = strdup(input->attr_name);
+	output->key_srng = input->key_srng;
+	output->key_erng = input->key_erng;
+	output->num_recs = input->num_recs;
+	int num_recs = input->num_recs;
+
+	precs_range_level = output;
+	precs_range_level->rec_val = (float *) calloc (num_recs, sizeof(float*));
+
+	int i;
+	for(i = 0; i < num_recs; i++) {
+		output->rec_val[i] = input->rec_val[i];
+	}
+	output->range_level=1;
+	printf("OUT RECORD FROM APPEND LEVEL FUNCTION === \n");
+	printf("OUT RECORD ==> attr_name : %s ...\n", output->attr_name);
+	printf("OUT RECORD ==> key_srng : %f ...\n", output->key_srng);
+	printf("OUT RECORD ==> key_erng : %f ...\n", output->key_erng);
+	printf("OUT RECORD ==> range_level : %d ...\n", output->range_level);
+	printf("OUT RECORD ==> num_recs : %d ...\n", output->num_recs);
+	printf("OUT RECORD ==> at index : %d rec_val : %f ...\n", 10, output->rec_val[10]);
+	return 1;
+}
+
+int append_range(recs_ptr input, recs_range_ptr output) {
+	printf("Inside the libfunctions.la APPEND_RANGE function .... \n");
+
+	output->attr_name = strdup(input->attr_name);
+	output->key_srng = 59;
+	output->key_erng = 101;
+	output->num_recs = input->num_recs;
+	int num_recs = input->num_recs;
+
+	precs_range = output;
+	precs_range->rec_val = (float *) calloc (num_recs, sizeof(float*));
+
+	int i;
+	for(i = 0; i < num_recs; i++) {
+		output->rec_val[i] = input->rec_val[i];
+	}
+	printf("OUT RECORD FROM APPEND RANGE FUNCTION === \n");
+	printf("OUT RECORD ==> attr_name : %s ...\n", output->attr_name);
+	printf("OUT RECORD ==> key_srng : %f ...\n", output->key_srng);
+	printf("OUT RECORD ==> key_erng : %f ...\n", output->key_erng);
+	printf("OUT RECORD ==> num_recs : %d ...\n", output->num_recs);
+	printf("OUT RECORD ==> at index : %d rec_val : %f ...\n", 0, output->rec_val[0]);
+	return 1;
+}
+
+int rec_window(sensor_rec_ptr input, recs_ptr output) {
+	printf("Inside the libfunctions.la REC_WINDOW function .... \n");
+	
+	if(marker_event) {
+		start = time(NULL);
+		sampling_rate = input->sampling_rate;
+		sampling_window = input->sampling_window;
+		event_buffer_size = sampling_window/sampling_rate;
+		dummy_event_buffer_size = 0;
+		precs = (struct recs *) calloc(1, sizeof(struct recs));  
+		precs->rec_val = (float *) calloc (event_buffer_size, sizeof(float*));
+		marker_event = 0;
+		return 0;
+	} else {
+		now = time(NULL);
+		elapsed = difftime(now, start);
+		if(elapsed < sampling_window) {
+			printf("Inside the libfunctions.la REC_WINDOW function ELAPSED TIME : %f .... \n", elapsed);
+			precs->rec_val[dummy_event_buffer_size] = input->rec_val;
+			dummy_event_buffer_size = dummy_event_buffer_size + 1;
+			return 0;
+		} else {
+			printf("Inside the libfunctions.la REC_WINDOW function Sampling Window is Crossed ....\n");
+			start = 0; now = 0; marker_event = 1;  
+			//precs = output;
+			output->attr_name = strdup(input->attr_name);
+			output->num_recs = dummy_event_buffer_size;
+			output->rec_val = (float *) calloc (dummy_event_buffer_size, sizeof(float*));
+
+			int i = 0;
+			for(i; i < dummy_event_buffer_size; i++) {
+				if(precs->rec_val[i] != 0) {
+					output->rec_val[i] = precs->rec_val[i];
+				}
+			}
+			dummy_event_buffer_size = 0; event_buffer_size = 0;
+			printf("OUT RECORD FROM APPEND RANGE FUNCTION === \n");
+			printf("OUT RECORD ==> attr_name : %s ...\n", output->attr_name);
+			printf("OUT RECORD ==> num_recs : %d ...\n", output->num_recs);
+			return 1;
+		}
+	}
+}

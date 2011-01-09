@@ -1,0 +1,15 @@
+#include "edge.h"
+
+void realize_edge(CManager cm, int qid, struct split_context *split_ctx, int end_stone) {
+	printf("Created EDGE from split stone_id : %d and action_id : %d to end stone id : %d ....\n", split_ctx->split_stone,
+	split_ctx->split_action, end_stone);
+	EVaction_add_split_target(cm, split_ctx->split_stone, split_ctx->split_action, end_stone);
+}
+
+void passivate_edge(struct edge_ctx *ectx, CManager cm) {
+
+}
+
+void reactivate_edge(struct edge_ctx *ectx, CManager cm) {
+
+}

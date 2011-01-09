@@ -1,0 +1,183 @@
+	Monitoring Scenarios
+
+	We contend that the future large scale of datacenters will 	require datacenter operators and managers the ability to monitor and manage the infrastructure efficiently due to sheer scale. The challenge is to perform 'multi level' in-band/run-time - monitoring and analysis/actions by which we mean not only be able to watch high and lower level metrics of whats happening in the environment but if anything goes wrong they should be able to actquickly either to alert other interfaces or mitigate them to stop eventual catastrophic failures. 
+
+	With current infrastructures, there is huge lag in ability of datacenter operators to act largely because management/analysis are performed centralized/offline with respect to online monitoring. Almost all the proposed and currently deployed infrastructure to best of our knowledge make assumptions about management actions/analysis be performed out of band/centralized/offline. The inherent rigidness of the systems infrastructure for monitoring and management will become major bottleneck with scale of 10^6 nodes datacenter hosting various applications and services which may be interacting with each other, adding any code components at their will and thus causing spikes and undesired behaviour for the large scale system due to interaction, propogation of undersired behaviour. 
+
+	We can see from above, current infrastructures are not designed to 'act' quickly enough as they 'sense' leaves all the decisions analysis and arereactive rather than proactive 'sense' and 'act' paradigm systems. Thus it can be seen how they fall short in their support for future datacenters ofscale hosting variety of interacting services and applications. 
+
+	Having established the gaps of current infrastructure to large scale systems in terms of their lack of dynamism, it	requires us to rethink traditional way of monitoring and management functions from siloed approach to more integrated approach of runtime monitoring as well as	management/analysis together. Bringing together monitoring and management functions to work together seamlessly as 'sense' and 'act' systems may look straight forward at the outset about just putting another stack layer but some of	the challenges involved are -
+
+	1. How to design the flexible, efficient control layer for both 'continuous' and 'on-demand' monitoring ?
+
+	2. What are the control layer abstractions which interacts with data path layer such that it does not interfere with the fast data path in terms of hinderence to delivery ?
+
+	3. Are there any good set of topologies for such 'sense' and 'act' systems ?
+
+	4. What are the control layer abstractions for interacting 	with  monitor and actuator knobs at the various levels from	platform, VM, application, network etc?
+
+	5. Most importantly, how to design control layer which can dynamically change part of data processing path quickly when	changes due to but not limited to platform, services, network subsystems are captured by 'sense' and 'act' interfaces of control layer ? 
+
+	6. Going further, how do we enable generic support for slack/no slack in such dynamic control infrastructure ?
+
+	7. How do we design all the above infrastructure support with low overhead of cpu, memory and cross network messages
+	?
+
+	8. In general any dynamic system should be measured against some stability criteria to show that system is stable under dynamism and thus will act robustly. What are the metrics for measurement of dynamic system infrastructure as mentioned above ?
+
+	We envisage that large scale systems infrastructure will need to run more sophisticated 'pluggable' computational and memory intensive analysis on the distributed monitoring data to feed to 'act' components of control
+		infrastructure thus enabling dynamism. Some of the such
+		interesting monitoring scenarios which can be very
+		useful for datacenter operations and will require
+		proposed paradigm of 'sense' and 'act' supported by our
+		control infrastructure are detailed below -
+
+		1. Basic Health Monitoring of System -
+
+		Example - Get all the nodes which have cpu utilization
+		operating in an operator defined lower and upper bounds,
+		and if it crosses bounds, keep the count of number of
+		time over last 2 mins has that bound been crossed, if
+		the count if again crossing a operator set count
+		threshold start monitoring memory usage for the nodes
+		again as above.
+
+		This query is useful for any datacenter operator who
+		wants to do bare minimum cpu and memory monitoring to
+		keep tab on basic set of resources on set of nodes. It
+		can be executed to 'monitor/sense' and 'analyse/act' on
+		a groups of nodes hosting special
+		platform/hardware/services.
+
+		The dynamic nature of this query comes from the fact
+		that having sensed that some of the nodes are crossing
+		operator defined threshold, operator would want to
+		extend bare minimum monitoring with little more data of
+		other basic resources to understand better whats going
+		on and this requires deploying new set of monitoring and
+		actuators at runtime and may not be of any use if done
+		offline collection of one resource usage once and then
+		analysis of that and triggering more monitoring based on
+		the analysis.
+
+		2. Macro level System Metrics Monitoring -
+
+		Example - Get the cummulative entropy of all the nodes
+		based on utilization - cpu and if it crosses operator
+		defined threshold, do last either calculation of entropy
+		on all the nodes based on memory and disk utilization or
+		do a 2 min window analysis for probability distribution
+			of cpu usage.
+
+			This query is useful for any datacenter operator
+			because its provides the macro level with out
+			depending on lower level system statistics to be
+			monitored and still provides a good sense for
+			deviations from the normal behaviour.
+
+			The dynamic nature of this query comes from the fact
+			that having sense that some of the nodes are cross
+			operator defined entropy threshold, operator would
+			want to know the same entropy statistics for other
+			monitoring attributes such as memory and disk
+			utilization for better understanding of whats going
+			on in the system. The other dynamic nature comes
+			from the fact that we need to deploy more functions
+			to do another set of analysis like last 2 min window
+			for probability distribution of cpu usage.
+
+				2. Multi Tier level Metrics Monitoring -
+
+				Example - Monitor all the nodes which have http
+				request rate spikes (from the VM level) and if
+				it crosses operator defined threshold count for
+				a period of time, do perform operator defined
+				threshold count analysis of cpu, memory and io
+				usage on VMs hosting database and application
+				server.
+				
+				This query is useful for data center as it
+				provides the way to relate changes going on at
+				application layer from a VM level and perform
+				sanity checks on the related infrastructure
+				which may be shared across application or
+				services like VM hosting database and VM hosting
+				application server.
+				
+				The dynamic nature of this query comes from the
+				fact that it has to go across other VMs which
+				are hosting other components of tiered
+				application and get hints on the possible
+				bottlenecks and issues causing the issue.
+				
+				3. Multi subsystem level Metrics Monitoring -
+				
+				Example - Find the topK number of physical hosts
+				which have number of VM migrations crossing a
+				operator defined threshold, if there are any
+				deviations start monitoring the network links to
+				check the packets for the source physical hosts
+				determination of incoming network traffic.
+				
+				This query is useful for datacenter operators
+				who are responsible for multiple admins or the
+				datacenter manager as it provides higher level
+				view of virtualized environment dynamics and if
+				that crosses the number of changes as defined by
+				the manager should start measuring the network
+				subsystem for source determination of these VM
+				migrations.
+				
+				The dynamic nature of this query can be seen
+				coming from the monitoring of environment at
+				various subsystem level to be able to mitigate
+				the impact of VM migrations on the destination
+				environment. It requires deploying new monitors
+				at different subsystem level and start
+				monitoring and acting on it.
+				
+				4. Multi VM platform metrics monitoring 
+				
+				a) For stability check -
+				
+				Example - Find the most probable hosts which
+				satisfies VM resource requirements over time T
+				in future among all the hosts which satisfy the
+				VM resource requirement criteria and if it does
+				select one, create 2 VMs and start basic
+				monitoring on them.
+				
+				The stability check is useful for data center
+				operator who is responsible for resource
+				consolidation and utilization of virtualized
+				environment. It provides a way to ensure that
+				migration of VMs are not occuring a lot.
+				
+				The dynamic nature of this query comes from the
+				fact that it requires monitoring of all the
+				hosts for VM resource requirements criteria and
+				when a set meets one it goes on to 'act' by
+				selecting one of them and create VMs and start
+				their basic health monitoring.
+				
+				b) For VM based resource allocation
+				
+				Example - Get all the hosts which can satisfy
+				the job resource requirements in terms of cpu
+				cycles, memory and storage requirement and
+				network bandwidth if one of the hosts satisifies
+				as per operator provided criteria, migrate the
+				VMs to other hosts and create VMs on selected
+				host for job submission.
+				
+				This is useful for datacenter operator as it
+				help search for the hosts which can satify the
+				job resource requirement and help set up the
+				initial infrastructure on the physical hosts. 
+				
+				The dynamic nature of this query come from the
+				fact that 'sensing' one of the hosts which which
+				satisfies the job resource requirment it then
+				'acts' by migrating the VMs on the selected
+				physical host to other hosts and create VMs on
+				the selected host.)

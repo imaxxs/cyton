@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 39
+/kaos/!svn/ver/7549/cyton/trunk/formats
+END
+Makefile.in
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/kaos/!svn/ver/7466/cyton/trunk/formats/Makefile.in
+END
+formatmanager.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/kaos/!svn/ver/7548/cyton/trunk/formats/formatmanager.cpp
+END
+Makefile.am
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/kaos/!svn/ver/7466/cyton/trunk/formats/Makefile.am
+END
+formatmanager.h
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/kaos/!svn/ver/7549/cyton/trunk/formats/formatmanager.h
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/kaos/!svn/ver/7466/cyton/trunk/formats/Makefile
+END
